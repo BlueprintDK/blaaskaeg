@@ -38,20 +38,34 @@
   const startPos = (n, w, h) => [[3, 3, 'r'], [w - 4, h - 4, 'l'], [w - 4, 3, 'd'], [3, h - 4, 'u']].slice(0, n);
   const farveAf = (api, e) => api.farve(e);
 
-  /* ==================== SNAKE ==================== */
-  const SW = 26, SH = 26;
+  /* ==================== SNAKE ====================
+   * 17/11-2026: lavet om til fælles kamp på tid (Michael: «spiller kun én ad gangen»).
+   * Før sluttede runden, så snart én slange døde – med 2 spillere varede et spil få sekunder.
+   * Nu: 2 minutter, alle spiller hele tiden, død = tilbage efter 3 sek. Æble +1, en anden kører ind i dig +2.
+   * Flest point, når tiden er gået, vinder (+3 i stillingen). */
+  const SW = 28, SH = 28, SNAKE_TID = (/[?&]kort=1/.test(location.search) ? 20000 : 120000), GENFØD = 3000, STEP = 120;
   function nyMad(G) {
     const opt = new Set(); G.sp.forEach(s => s.krop.forEach(([x, y]) => opt.add(x + ',' + y))); G.mad.forEach(([x, y]) => opt.add(x + ',' + y));
     for (let t = 0; t < 200; t++) { const x = rnd(SW), y = rnd(SH); if (!opt.has(x + ',' + y)) { G.mad.push([x, y]); return; } }
   }
+  function placer(G, s, fast) {
+    const opt = new Set(); G.sp.forEach(o => o.krop.forEach(([x, y]) => opt.add(x + ',' + y)));
+    for (let t = 0; t < 300; t++) {
+      const [x, y, r] = fast && t === 0 ? fast : [3 + rnd(SW - 6), 3 + rnd(SH - 6), 'udlr'[rnd(4)]];
+      const [dx, dy] = RET[r], krop = [[x, y], [x - dx, y - dy], [x - 2 * dx, y - 2 * dy]];
+      const frit = krop.every(([a, b]) => a >= 0 && b >= 0 && a < SW && b < SH && !opt.has(a + ',' + b))
+        && [1, 2, 3, 4].every(k => { const a = x + dx * k, b = y + dy * k; return a >= 0 && b >= 0 && a < SW && b < SH && !opt.has(a + ',' + b); });
+      if (frit) { Object.assign(s, { krop, ret: r, kø: [], liv: true, vækst: 0, gen: 0 }); return; }
+    }
+  }
   BS.registrer({
-    id: 'snake', navn: 'Snake', e: '🐍', min: 1, max: 4, tickMs: 120, felles: true,
-    d: 'Spis æbler og bliv lang – kør ikke ind i noget. Sidste slange vinder.',
+    id: 'snake', navn: 'Snake', e: '🐍', min: 1, max: 4, tickMs: STEP, felles: true,
+    d: 'Alle kører samtidig i 2 minutter. Spis æbler – flest point vinder.',
     start(H) {
       const ps = H.spillere(), pos = startPos(ps.length, SW, SH);
-      const G = { fase: 'nedtæl', t: NEDTÆL, mad: [], vinder: null, sp: ps.map((p, i) => {
-        const [x, y, r] = pos[i], [dx, dy] = RET[r]; return { e: p.enhed, krop: [[x, y], [x - dx, y - dy], [x - 2 * dx, y - 2 * dy]], ret: r, kø: [], liv: true, vækst: 0 }; }) };
-      for (let i = 0; i < 4; i++) nyMad(G);
+      const G = { fase: 'nedtæl', t: NEDTÆL, tid: SNAKE_TID, mad: [], vinder: null, score: {}, sp: [] };
+      ps.forEach((p, i) => { const s = { e: p.enhed, krop: [] }; G.sp.push(s); G.score[p.enhed] = 0; placer(G, s, pos[i]); });
+      for (let i = 0; i < 6; i++) nyMad(G);
       return G;
     },
     kald(H, G, e, d) {
@@ -63,35 +77,65 @@
     },
     tick(H, G) {
       if (G.fase === 'slut') return false;
-      if (G.fase === 'nedtæl') { G.t -= 120; if (G.t <= 0) G.fase = 'kører'; return true; }
+      if (G.fase === 'nedtæl') { G.t -= STEP; if (G.t <= 0) G.fase = 'kører'; return true; }
+      G.tid -= STEP;
+      /* døde slanger kommer tilbage efter 3 sekunder (kun spillere, der stadig er med) */
+      G.sp.forEach(s => { if (!s.liv && !s.ude) { s.gen -= STEP; if (s.gen <= 0) placer(G, s); } });
       const levende = G.sp.filter(s => s.liv);
       levende.forEach(s => { if (s.kø.length) s.ret = s.kø.shift(); const [dx, dy] = RET[s.ret]; s.ny = [s.krop[0][0] + dx, s.krop[0][1] + dy]; });
-      levende.forEach(s => { const i = G.mad.findIndex(([x, y]) => x === s.ny[0] && y === s.ny[1]); if (i >= 0) { G.mad.splice(i, 1); s.vækst += 2; nyMad(G); } });
+      levende.forEach(s => { const i = G.mad.findIndex(([x, y]) => x === s.ny[0] && y === s.ny[1]); if (i >= 0) { G.mad.splice(i, 1); s.vækst += 2; G.score[s.e] = (G.score[s.e] || 0) + 1; G.ædt = (G.ædt || 0) + 1; if (G.mad.length < 6) nyMad(G); } });
       levende.forEach(s => { s.krop.unshift(s.ny); if (s.vækst > 0) s.vækst--; else s.krop.pop(); });
-      const optaget = {}; G.sp.forEach(s => s.krop.forEach(([x, y], i) => { const k = x + ',' + y; optaget[k] = (optaget[k] || 0) + 1; }));
-      const døde = levende.filter(s => { const [x, y] = s.krop[0]; return x < 0 || y < 0 || x >= SW || y >= SH || optaget[x + ',' + y] > 1; });
-      døde.forEach(s => { s.liv = false; s.krop.forEach(([x, y], i) => { if (i % 2 === 0 && x >= 0 && y >= 0 && x < SW && y < SH) G.mad.push([x, y]); }); s.krop = []; G.død = (G.død || 0) + 1; });
-      slutTjek(H, G, G.sp.length > 1 ? 1 : 0);
+      const ejer = {}; G.sp.forEach(s => s.krop.forEach(([x, y], i) => { const k = x + ',' + y; (ejer[k] = ejer[k] || []).push(s); }));
+      const døde = levende.filter(s => { const [x, y] = s.krop[0]; return x < 0 || y < 0 || x >= SW || y >= SH || ejer[x + ',' + y].length > 1; });
+      døde.forEach(s => {
+        const [x, y] = s.krop[0], ramt = (ejer[x + ',' + y] || []).find(o => o !== s);
+        if (ramt && !døde.includes(ramt)) G.score[ramt.e] = (G.score[ramt.e] || 0) + 2;     // en anden kørte ind i dig: +2
+        s.krop.forEach(([a, b], i) => { if (i % 2 === 0 && a >= 0 && b >= 0 && a < SW && b < SH) G.mad.push([a, b]); });
+        Object.assign(s, { liv: false, krop: [], gen: GENFØD }); G.død = (G.død || 0) + 1;
+      });
+      if (G.tid <= 0) {
+        G.fase = 'slut'; const top = Math.max(...Object.values(G.score).concat([0]));
+        const vindere = Object.keys(G.score).filter(e => G.score[e] === top && top > 0);
+        G.vinder = vindere.length === 1 ? vindere[0] : null; G.vindere = vindere;
+        vindere.forEach(e => H.giv(e, 3));
+      }
       return true;
     },
-    frakoblet(H, G, e) { const s = G.sp.find(x => x.e === e); if (s && s.liv && G.fase !== 'slut') { s.liv = false; s.krop = []; } },
-    skiftEnhed(H, G, gl, ny) { G.sp.forEach(s => { if (s.e === gl) s.e = ny; }); if (G.vinder === gl) G.vinder = ny; },
-    view(H, G) { return { fase: G.fase, t: G.t, mad: G.mad, vinder: G.vinder, død: G.død || 0, sp: G.sp.map(s => ({ e: s.e, krop: s.krop, liv: s.liv })), slut: G.fase === 'slut' ? { vinder: G.vinder } : null }; },
+    frakoblet(H, G, e) { const s = G.sp.find(x => x.e === e); if (s) { s.liv = false; s.krop = []; s.ude = true; } },
+    skiftEnhed(H, G, gl, ny) { G.sp.forEach(s => { if (s.e === gl) { s.e = ny; s.ude = false; } }); if (gl in G.score) { G.score[ny] = G.score[gl]; delete G.score[gl]; } if (G.vinder === gl) G.vinder = ny; },
+    view(H, G) {
+      return { fase: G.fase, t: G.t, tid: Math.max(0, G.tid), mad: G.mad, vinder: G.vinder, vindere: G.vindere || [], score: G.score, død: G.død || 0, ædt: G.ædt || 0,
+        sp: G.sp.map(s => ({ e: s.e, krop: s.krop, liv: s.liv, gen: s.liv ? 0 : Math.max(0, s.gen || 0) })), slut: G.fase === 'slut' ? { vinder: G.vinder } : null };
+    },
     tegn(el, v, api) {
-      if (!el.querySelector('#sn-cv')) { el.innerHTML = '<div class="rt-ban"></div><canvas id="sn-cv" width="520" height="520" style="width:100%;aspect-ratio:1;border-radius:14px"></canvas>' + PAD; gitterStyring(el, api); }
-      bannerOpdater(el, statusLinje(v, api, '🐍 Spis æbler – undgå alt andet'));
+      if (!el.querySelector('#sn-cv')) {
+        el.innerHTML = '<div class="rt-ban"></div><div id="sn-score" class="chips" style="justify-content:center;margin:0 0 8px"></div>'
+          + '<canvas id="sn-cv" width="560" height="560" style="width:100%;aspect-ratio:1;border-radius:14px"></canvas>' + PAD;
+        gitterStyring(el, api);
+      }
+      const mig = v.sp.find(s => s.e === api.mig), ur = Math.ceil(v.tid / 1000), mmss = Math.floor(ur / 60) + ':' + String(ur % 60).padStart(2, '0');
+      let ban;
+      if (v.fase === 'nedtæl') ban = '<div class="banner min" style="font-size:26px">' + Math.max(1, Math.ceil(v.t / 1000)) + '</div>';
+      else if (v.fase === 'slut') ban = '<div class="banner min">⏱ Tiden er gået – ' + (v.vindere.length === 1 ? '🏆 ' + esc(api.navn(v.vindere[0])) + ' vandt!' : v.vindere.length ? '🤝 Uafgjort: ' + v.vindere.map(e => esc(api.navn(e))).join(' og ') : 'ingen point') + '</div>';
+      else if (mig && !mig.liv) ban = '<div class="banner">💀 Du er tilbage om ' + Math.max(1, Math.ceil(mig.gen / 1000)) + ' … · ⏱ ' + mmss + '</div>';
+      else ban = '<div class="banner' + (mig ? ' min' : '') + '">🐍 ⏱ ' + mmss + ' · spis æbler!</div>';
+      bannerOpdater(el, ban);
+      const sc = el.querySelector('#sn-score'), sh = v.sp.slice().sort((a, b) => (v.score[b.e] || 0) - (v.score[a.e] || 0))
+        .map(s => '<span class="chip' + (s.e === api.mig ? ' mig' : '') + '"><i style="background:' + farveAf(api, s.e) + '"></i>' + esc(api.navn(s.e)) + ' ' + (v.score[s.e] || 0) + '</span>').join('');
+      if (sc._h !== sh) { sc._h = sh; sc.innerHTML = sh; }
       if (el._død !== v.død) { if (el._død != null) api.lyd.død(); el._død = v.død; }
+      if (el._ædt !== v.ædt) { if (el._ædt != null) api.lyd.klik(); el._ædt = v.ædt; }
       const cv = el.querySelector('#sn-cv'), c = cv.getContext('2d'), k = cv.width / SW;
       c.fillStyle = '#0d1d40'; c.fillRect(0, 0, cv.width, cv.height);
       c.strokeStyle = 'rgba(255,255,255,.04)'; for (let i = 1; i < SW; i++) { c.beginPath(); c.moveTo(i * k, 0); c.lineTo(i * k, cv.height); c.moveTo(0, i * k); c.lineTo(cv.width, i * k); c.stroke(); }
-      v.mad.forEach(([x, y]) => { c.fillStyle = '#ef476f'; c.beginPath(); c.arc(x * k + k / 2, y * k + k / 2, k * .38, 0, Math.PI * 2); c.fill(); c.fillStyle = '#06d6a0'; c.fillRect(x * k + k * .48, y * k + k * .05, k * .12, k * .25); });
+      v.mad.forEach(([x, y]) => { c.fillStyle = '#ffffff'; c.beginPath(); c.arc(x * k + k / 2, y * k + k / 2, k * .38, 0, Math.PI * 2); c.fill(); c.fillStyle = '#06d6a0'; c.fillRect(x * k + k * .48, y * k + k * .05, k * .12, k * .25); });
       v.sp.forEach(s => {
         const f = farveAf(api, s.e);
         s.krop.forEach(([x, y], i) => { c.fillStyle = f; c.globalAlpha = i === 0 ? 1 : .85 - Math.min(.4, i * .01); const p = i === 0 ? 1 : 2; c.fillRect(x * k + p, y * k + p, k - 2 * p, k - 2 * p); });
         c.globalAlpha = 1;
         if (s.krop[0]) { const [x, y] = s.krop[0]; c.fillStyle = '#0b1630'; c.beginPath(); c.arc(x * k + k * .35, y * k + k * .4, k * .1, 0, 7); c.arc(x * k + k * .65, y * k + k * .4, k * .1, 0, 7); c.fill(); }
       });
-      if (v.fase === 'slut' && el._slut !== v.vinder + '') { el._slut = v.vinder + ''; v.vinder === api.mig ? api.lyd.vind() : api.lyd.fejl(); }
+      if (v.fase === 'slut' && el._slut !== 'x') { el._slut = 'x'; v.vindere.includes(api.mig) ? api.lyd.vind() : api.lyd.fejl(); }
     },
   });
 
