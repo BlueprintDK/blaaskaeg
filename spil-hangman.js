@@ -21,11 +21,13 @@
     ['TRAMPOLIN', 'Leg'], ['GYNGE', 'Leg'], ['SJIPPETOV', 'Leg'], ['VERDENSKORT', 'Ting'], ['BLÅBÆR', 'Frugt og grønt'],
   ];
   const ALF = 'ABCDEFGHIJKLMNOPQRSTUVWXYZÆØÅ'.split('');
+  /* 18/11-2026 (Michael): 30 sek. pr. tur. Gætter man ikke i tide, går turen videre, og man mister 2 point. */
+  const FRIST = 30000, STRAF = 2;
   const næste = (H, G, i) => { const n = G.rk.length; for (let k = 1; k <= n; k++) { const j = (i + k) % n; const p = H.find(G.rk[j]); if (p && p.online) return j; } return i; };
   function nytOrd(H, G) {
     let w; do { w = ORD[rnd(ORD.length)]; } while (G.brugt.includes(w[0]) && G.brugt.length < ORD.length - 1);
     G.brugt.push(w[0]);
-    Object.assign(G, { ord: w[0], hint: w[1], gaet: [], fejl: 0, slut: null, sidst: null });
+    Object.assign(G, { ord: w[0], hint: w[1], gaet: [], fejl: 0, slut: null, sidst: null, frist: Date.now() + FRIST });
   }
   BS.registrer({
     id: 'hangman', navn: 'Hangman', e: '🪢', min: 2, max: 4,
@@ -34,9 +36,21 @@
       const G = { rk: H.spillere().map(p => p.enhed), tur: 0, brugt: [], runde: 0 };
       G.tur = rnd(G.rk.length); nytOrd(H, G); return G;
     },
+    tickMs: 500,
+    tick(H, G) {
+      if (G.slut || !G.frist || Date.now() < G.frist) return false;
+      const e = G.rk[G.tur]; H.giv(e, -STRAF);
+      G.sidst = { navn: H.navn(e), tid: true, n: (G.sidst && G.sidst.n || 0) + 1 };
+      G.tur = næste(H, G, G.tur); G.frist = Date.now() + FRIST;
+      return true;
+    },
     kald(H, G, e, d) {
       if (d.ny) { if (G.slut) { G.runde++; G.tur = næste(H, G, G.tur); nytOrd(H, G); } return; }
       if (G.slut || G.rk[G.tur] !== e) return;
+      this.handling(H, G, e, d);
+      G.frist = Date.now() + FRIST;          // hver handling giver en frisk tur-tid
+    },
+    handling(H, G, e, d) {
       const navn = H.navn(e);
       if (d.helt) {
         const g = String(d.helt).toUpperCase().replace(/\s+/g, '');
@@ -55,11 +69,11 @@
         if (G.fejl >= 6) G.slut = { vandt: false }; else G.tur = næste(H, G, G.tur);
       }
     },
-    frakoblet(H, G, e) { if (G.rk[G.tur] === e && !G.slut) G.tur = næste(H, G, G.tur); },
+    frakoblet(H, G, e) { if (G.rk[G.tur] === e && !G.slut) { G.tur = næste(H, G, G.tur); G.frist = Date.now() + FRIST; } },
     skiftEnhed(H, G, gl, ny) { G.rk = G.rk.map(x => x === gl ? ny : x); },
     view(H, G) {
       return { maske: [...G.ord].map(c => G.gaet.includes(c) ? c : '_'), ord: G.slut ? G.ord : null, hint: G.hint, gaet: G.gaet, fejl: G.fejl,
-        tur: G.rk[G.tur], sidst: G.sidst, slut: G.slut, runde: G.runde };
+        tur: G.rk[G.tur], sidst: G.sidst, slut: G.slut, runde: G.runde, rest: G.slut ? 0 : Math.max(0, G.frist - Date.now()) };
     },
     felles: true,
     tegn(el, v, api) {
@@ -73,12 +87,13 @@
         + g(1, '<circle cx="140" cy="50" r="16"/>') + g(2, '<line x1="140" y1="66" x2="140" y2="116"/>') + g(3, '<line x1="140" y1="80" x2="118" y2="104"/>')
         + g(4, '<line x1="140" y1="80" x2="162" y2="104"/>') + g(5, '<line x1="140" y1="116" x2="122" y2="150"/>') + g(6, '<line x1="140" y1="116" x2="158" y2="150"/>') + '</g></svg>'
         + '<div style="font-size:clamp(26px,8vw,44px);font-weight:900;letter-spacing:.22em;text-align:center;margin:6px 0;word-break:break-all">' + esc((v.ord ? [...v.ord] : v.maske).join('')) + '</div>';
-      if (v.sidst) h += '<p class="hint center">' + esc(v.sidst.navn) + ' gættede <b>' + esc(v.sidst.b) + '</b> ' + (v.sidst.ok ? '✅' : '❌') + '</p>';
+      if (v.sidst) h += '<p class="hint center">' + (v.sidst.tid ? '⏰ ' + esc(v.sidst.navn) + ' nåede ikke at gætte – <b>−' + STRAF + ' point</b>'
+        : esc(v.sidst.navn) + ' gættede <b>' + esc(v.sidst.b) + '</b> ' + (v.sidst.ok ? '✅' : '❌')) + '</p>';
       if (v.slut) {
         h += '<div class="banner' + (v.slut.vandt ? ' min' : '') + '">' + (v.slut.vandt ? '🎉 ' + esc(api.navn(v.slut.af)) + ' løste ordet!' : '💀 Hængt! Ordet var ' + esc(v.ord)) + '</div>';
         if (api.vært) h += '<div class="hostbar"><button class="btn ok big" id="hg-ny">Nyt ord →</button></div>';
       } else {
-        h += '<div class="banner' + (min ? ' min' : '') + '">' + (min ? '🎯 Din tur – vælg et bogstav' : '⏳ ' + esc(api.navn(v.tur)) + 's tur') + '</div>'
+        h += '<div class="banner' + (min ? ' min' : '') + '">' + (min ? '🎯 Din tur – vælg et bogstav' : '⏳ ' + esc(api.navn(v.tur)) + 's tur') + '</div><div id="hg-ur"></div>'
           + '<div style="display:grid;grid-template-columns:repeat(8,1fr);gap:6px">' + ALF.map(c => '<button class="btn" data-b="' + c + '" style="padding:10px 0;' + (v.gaet.includes(c) ? 'opacity:.2' : '') + '"' + (!min || v.gaet.includes(c) ? ' disabled' : '') + '>' + c + '</button>').join('') + '</div>'
           + (min ? '<div class="row" style="margin-top:12px"><input class="in" id="hg-helt" placeholder="Gæt hele ordet" style="font-size:16px"><button class="btn sec" id="hg-gaet" style="flex:0 0 30%">Gæt</button></div><p class="hint center">Forkert gæt på hele ordet koster 2 liv.</p>' : '');
       }
@@ -86,6 +101,7 @@
       if (el.dataset.s === sig) return; el.dataset.s = sig;
       if (v.sidst && el.dataset.sidst !== JSON.stringify(v.sidst)) { el.dataset.sidst = JSON.stringify(v.sidst); v.sidst.ok ? api.lyd.ok() : api.lyd.fejl(); if (v.slut && v.slut.vandt) api.lyd.vind(); }
       el.innerHTML = h;
+      const ur = el.querySelector('#hg-ur'); if (ur) BS.turUr(ur, v.rest, FRIST);
       el.querySelectorAll('[data-b]').forEach(b => { b.onclick = () => { b.disabled = true; api.kald({ b: b.dataset.b }); }; });
       const gb = el.querySelector('#hg-gaet'); if (gb) gb.onclick = () => { const t = el.querySelector('#hg-helt').value.trim(); if (t) api.kald({ helt: t }); };
       const ny = el.querySelector('#hg-ny'); if (ny) ny.onclick = () => api.kald({ ny: 1 });

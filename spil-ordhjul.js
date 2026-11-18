@@ -30,21 +30,35 @@
   const HJUL = [500, 300, 'Fallit', 800, 200, 600, 'Mist tur', 400, 1000, 300, 700, 'Fallit', 250, 900, 350, 600];
   const VOKALER = 'AEIOUYÆØÅ'.split(''), KONS = 'BCDFGHJKLMNPQRSTVWXZ'.split('');
   const PRIS = 250;
+  /* 18/11-2026 (Michael): 30 sek. pr. handling (drej / bogstav / løs). Ellers går turen videre, og man mister 2 point. */
+  const FRIST = 30000, STRAF = 2;
   const norm = s => String(s || '').toUpperCase().replace(/[^A-ZÆØÅ]/g, '');
   const næste = (H, G) => { const n = G.rk.length; for (let k = 1; k <= n; k++) { const j = (G.tur + k) % n; if ((H.find(G.rk[j]) || {}).online) return j; } return G.tur; };
   function nyGåde(G) {
     let g; do { g = GÅDER[rnd(GÅDER.length)]; } while (G.brugt.includes(g[1]) && G.brugt.length < GÅDER.length - 1);
     G.brugt.push(g[1]);
-    Object.assign(G, { kat: g[0], gåde: g[1], vist: [], fase: 'drej', værdi: 0, penge: {}, slut: null });
+    Object.assign(G, { kat: g[0], gåde: g[1], vist: [], fase: 'drej', værdi: 0, penge: {}, slut: null, frist: Date.now() + FRIST });
     G.rk.forEach(e => { G.penge[e] = 0; });
   }
   BS.registrer({
     id: 'ordhjul', navn: 'Ordhjulet', e: '🎡', min: 2, max: 4,
     d: 'Drej hjulet, gæt bogstaver og løs gåden før de andre.',
     start(H) { const G = { rk: H.spillere().map(p => p.enhed), tur: 0, brugt: [], spin: { n: 0, i: 0 }, log: '' }; G.tur = rnd(G.rk.length); nyGåde(G); return G; },
+    tickMs: 500,
+    tick(H, G) {
+      if (G.slut || !G.frist || Date.now() < G.frist) return false;
+      const e = G.rk[G.tur]; H.giv(e, -STRAF);
+      G.log = '⏰ ' + H.navn(e) + ' nåede det ikke – −' + STRAF + ' point'; G.fase = 'drej';
+      G.tur = næste(H, G); G.frist = Date.now() + FRIST; G.tidUd = (G.tidUd || 0) + 1;
+      return true;
+    },
     kald(H, G, e, d) {
       if (d.ny) { if (G.slut) { G.tur = næste(H, G); nyGåde(G); G.log = ''; } return; }
       if (G.slut || G.rk[G.tur] !== e) return;
+      this.handling(H, G, e, d);
+      G.frist = Date.now() + FRIST + (d.drej ? 2600 : 0);   // frisk tid efter hver handling (+ hjulets snurretid)
+    },
+    handling(H, G, e, d) {
       const navn = H.navn(e);
       if (d.drej && G.fase === 'drej') {
         const i = rnd(HJUL.length), f = HJUL[i]; G.spin = { n: G.spin.n + 1, i };
@@ -73,12 +87,13 @@
         } else { G.log = navn + ' gættede forkert: «' + String(d.løs).slice(0, 40) + '»'; G.tur = næste(H, G); }
       }
     },
-    frakoblet(H, G, e) { if (G.rk[G.tur] === e && !G.slut) { G.fase = 'drej'; G.tur = næste(H, G); } },
+    frakoblet(H, G, e) { if (G.rk[G.tur] === e && !G.slut) { G.fase = 'drej'; G.tur = næste(H, G); G.frist = Date.now() + FRIST; } },
     skiftEnhed(H, G, gl, ny) { G.rk = G.rk.map(x => x === gl ? ny : x); if (gl in G.penge) { G.penge[ny] = G.penge[gl]; delete G.penge[gl]; } if (G.slut && G.slut.af === gl) G.slut.af = ny; },
     felles: true,
     view(H, G) {
       return { kat: G.kat, tavle: [...G.gåde].map(c => (c === ' ' || !/[A-ZÆØÅ]/.test(c) || G.vist.includes(c)) ? c : '_'), vist: G.vist, fase: G.fase, værdi: G.værdi,
-        tur: G.rk[G.tur], penge: G.penge, rk: G.rk, spin: G.spin, log: G.log, slut: G.slut };
+        tur: G.rk[G.tur], penge: G.penge, rk: G.rk, spin: G.spin, log: G.log, slut: G.slut,
+        rest: G.slut ? 0 : Math.max(0, G.frist - Date.now()), tidUd: G.tidUd || 0 };
     },
     tegn(el, v, api) {
       const min = v.tur === api.mig && !v.slut;
@@ -95,6 +110,7 @@
           + (c === '_' ? 'background:#e9f0ff;color:transparent' : /[A-ZÆØÅ]/.test(c) ? 'background:#fff;color:#0b1630' : 'background:transparent;color:#fff;width:12px') + '">' + esc(c === '_' ? '' : c) + '</span>').join('') + '</div>').join('') + '</div>';
       h += '<div class="chips" style="justify-content:center">' + v.rk.map(e => '<span class="chip' + (e === v.tur && !v.slut ? ' mig' : '') + '"><i style="background:' + api.farve(e) + '"></i>' + esc(api.navn(e)) + ' · ' + (v.penge[e] || 0) + ' kr</span>').join('') + '</div>';
       if (v.log) h += '<p class="hint center">' + esc(v.log) + '</p>';
+      if (!v.slut) h += '<div id="oh-ur"></div>';
       if (v.slut) {
         h += '<div class="banner min">🏆 ' + esc(api.navn(v.slut.af)) + ' løste gåden og får 3 point</div>';
         if (api.vært) h += '<div class="hostbar"><button class="btn ok big" id="oh-ny">Ny gåde →</button></div>';
@@ -111,6 +127,8 @@
           + '<div class="row" style="margin-top:12px"><input class="in" id="oh-løs" placeholder="Løs gåden" style="font-size:16px"><button class="btn" id="oh-løsb" style="flex:0 0 28%">Løs</button></div>';
       }
       el.querySelector('#oh-rest').innerHTML = h;
+      const ur = el.querySelector('#oh-ur'); if (ur) BS.turUr(ur, v.rest, FRIST);
+      if (el._tidUd !== v.tidUd) { if (el._tidUd != null) api.lyd.fejl(); el._tidUd = v.tidUd; }
       const q = s => el.querySelector(s);
       if (q('#oh-drej')) q('#oh-drej').onclick = () => { q('#oh-drej').disabled = true; api.kald({ drej: 1 }); };
       el.querySelectorAll('[data-k]').forEach(b => { b.onclick = () => api.kald({ k: b.dataset.k }); });

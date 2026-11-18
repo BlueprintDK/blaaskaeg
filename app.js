@@ -165,7 +165,7 @@
           }
           const svar = serverKald(cn.enhed, m.c);
           if (typeof svar === 'string' && svar !== 'fuld') { try { cn.send({ t: 'besked', b: svar }); } catch (x) {} }
-          if (!(R.spil && BS.spil[R.spil.id] && BS.spil[R.spil.id].tick && m.c && m.c.h === 'spil')) udsend();
+          if (!(R.spil && BS.spil[R.spil.id] && BS.spil[R.spil.id].realtid && m.c && m.c.h === 'spil')) udsend();
         });
         cn.on('close', () => {
           conns = conns.filter(x => x !== cn);
@@ -205,7 +205,7 @@
     });
   }
   function kald(c) {
-    if (R) { const s = serverKald(enhed, c); if (typeof s === 'string') toast(s); if (!(c.h === 'spil' && R.spil && BS.spil[R.spil.id].tick)) udsend(); return; }
+    if (R) { const s = serverKald(enhed, c); if (typeof s === 'string') toast(s); if (!(c.h === 'spil' && R.spil && BS.spil[R.spil.id].realtid)) udsend(); return; }
     if (tilVaert && tilVaert.open) { try { tilVaert.send({ t: 'k', e: enhed, c }); } catch (e) { toast('Kunne ikke sende'); } }
   }
   function forlad() {
@@ -322,7 +322,26 @@
     }
   }
 
+  /* Tur-ur: viser de sekunder, der er tilbage af en tur. Værten sender «rest» (ms); hver telefon
+     regner sin egen sluttid ud fra modtagelsen, så urene ikke skal være stillet ens. */
+  let urInt = null, urSlut = 0, urEl = null, urTotal = 30000;
+  function turUr(el, rest, total) {
+    urEl = el; urSlut = Date.now() + Math.max(0, rest || 0); urTotal = total || 30000;
+    const opd = () => {
+      if (!urEl || !urEl.isConnected) { clearInterval(urInt); urInt = null; return; }
+      const ms = Math.max(0, urSlut - Date.now()), s = Math.ceil(ms / 1000);
+      urEl.innerHTML = '<div class="turur' + (s <= 10 ? ' lav' : '') + '"><i style="width:' + (ms / urTotal * 100).toFixed(1) + '%"></i><span>⏱ ' + s + ' sek</span></div>';
+    };
+    opd(); if (!urInt) urInt = setInterval(opd, 250);
+  }
+  const urCss = document.createElement('style');
+  urCss.textContent = '.turur{position:relative;height:24px;border-radius:12px;background:var(--panel);overflow:hidden;margin:0 0 10px}'
+    + '.turur i{position:absolute;left:0;top:0;bottom:0;background:var(--blue);transition:width .25s linear}.turur.lav i{background:var(--bad)}'
+    + '.turur span{position:relative;display:block;text-align:center;font-weight:800;font-size:13px;line-height:24px}';
+  document.head.appendChild(urCss);
+
   const BS = window.BS = {
+    turUr,
     spil: {}, rækkefølge: [],
     registrer(def) { this.spil[def.id] = def; this.rækkefølge.push(def.id); },
     esc, rnd, bland, lyd, vib, toast, FARVER,

@@ -7,18 +7,27 @@
   const NEDTÆL = 3000;
 
   /* ---------- fælles: styring (swipe, piletaster, knapper) til gitter-spil ---------- */
+  /* 18/11-2026 (Michael): styres med swipe på hele spilfladen i stedet for pile-knapper.
+     Retningen sendes, så snart fingeren har flyttet sig ~22 px – man kan blive ved med at swipe uden at slippe. */
   function gitterStyring(el, api) {
     if (el._styr) return; el._styr = true;
+    el.style.touchAction = 'none';
     const send = r => { api.kald({ r }); api.vib(8); };
     const tast = e => { const k = { ArrowUp: 'u', ArrowDown: 'd', ArrowLeft: 'l', ArrowRight: 'r', w: 'u', s: 'd', a: 'l', d: 'r' }[e.key]; if (k && el.isConnected) { e.preventDefault(); send(k); } };
     document.addEventListener('keydown', tast);
-    const cv = el.querySelector('canvas'); let sx = 0, sy = 0;
-    cv.addEventListener('pointerdown', e => { sx = e.clientX; sy = e.clientY; });
-    cv.addEventListener('pointerup', e => { const dx = e.clientX - sx, dy = e.clientY - sy; if (Math.max(Math.abs(dx), Math.abs(dy)) < 18) return; send(Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? 'r' : 'l') : (dy > 0 ? 'd' : 'u')); });
-    el.querySelectorAll('[data-r]').forEach(b => b.addEventListener('pointerdown', e => { e.preventDefault(); send(b.dataset.r); }));
+    let id = null, sx = 0, sy = 0, sidst = '';
+    el.addEventListener('pointerdown', e => { id = e.pointerId; sx = e.clientX; sy = e.clientY; sidst = ''; try { el.setPointerCapture(e.pointerId); } catch (x) {} });
+    el.addEventListener('pointermove', e => {
+      if (e.pointerId !== id) return;
+      const dx = e.clientX - sx, dy = e.clientY - sy; if (Math.max(Math.abs(dx), Math.abs(dy)) < 22) return;
+      const r = Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? 'r' : 'l') : (dy > 0 ? 'd' : 'u');
+      if (r !== sidst) { send(r); sidst = r; }
+      sx = e.clientX; sy = e.clientY;
+    });
+    const slip = e => { if (e.pointerId === id) id = null; };
+    el.addEventListener('pointerup', slip); el.addEventListener('pointercancel', slip);
   }
-  const PAD = '<div class="pad"><span></span><button data-r="u">▲</button><span></span><button data-r="l">◀</button><button data-r="d">▼</button><button data-r="r">▶</button></div>'
-    + '<p class="hint center" style="margin:6px 0 0">Swipe på banen eller brug pilene</p>';
+  const PAD = '<p class="hint center" style="margin:10px 0 0">👆 Swipe på skærmen for at dreje · pc: piletaster</p>';
   function statusLinje(v, api, ord) {
     if (v.fase === 'nedtæl') return '<div class="banner min" style="font-size:26px">' + Math.max(1, Math.ceil(v.t / 1000)) + '</div>';
     if (v.fase === 'slut') return '<div class="banner min">' + (v.vinder ? '🏆 ' + esc(api.navn(v.vinder)) + ' vandt!' : '🤝 Uafgjort – alle røg ud') + '</div>';
@@ -59,7 +68,7 @@
     }
   }
   BS.registrer({
-    id: 'snake', navn: 'Snake', e: '🐍', min: 1, max: 4, tickMs: STEP, felles: true,
+    id: 'snake', navn: 'Snake', e: '🐍', min: 1, max: 4, tickMs: STEP, felles: true, realtid: true,
     d: 'Alle kører samtidig i 2 minutter. Spis æbler – flest point vinder.',
     start(H) {
       const ps = H.spillere(), pos = startPos(ps.length, SW, SH);
@@ -142,7 +151,7 @@
   /* ==================== LYSBANER ==================== */
   const LW = 72, LH = 72;
   BS.registrer({
-    id: 'lysbaner', navn: 'Lysbaner', e: '🏍️', min: 2, max: 4, tickMs: 65, felles: true,
+    id: 'lysbaner', navn: 'Lysbaner', e: '🏍️', min: 2, max: 4, tickMs: 65, felles: true, realtid: true,
     d: 'Kør på lys-motorcykel og efterlad en mur. Ram ingen mure – sidste kører vinder.',
     start(H) {
       const ps = H.spillere(), pos = [[8, 8, 'r'], [LW - 9, LH - 9, 'l'], [LW - 9, 8, 'd'], [8, LH - 9, 'u']];
@@ -198,7 +207,7 @@
   const AW = 100, AH = 70, PR = 2.6, DR = 1.1, FART = 26, DFART = 62, LIV = 3;
   const SØJLER = [{ x: 30, y: 35, r: 5.5 }, { x: 70, y: 35, r: 5.5 }, { x: 50, y: 14, r: 3.5 }, { x: 50, y: 56, r: 3.5 }];
   BS.registrer({
-    id: 'diskos', navn: 'Diskos-arena', e: '🥏', min: 2, max: 4, tickMs: 33, felles: true,
+    id: 'diskos', navn: 'Diskos-arena', e: '🥏', min: 2, max: 4, tickMs: 33, felles: true, realtid: true,
     d: 'Kast lysende diske, der preller af væggene. Tre træffere, og du er ude.',
     start(H) {
       const ps = H.spillere(), pos = [[8, 8], [AW - 8, AH - 8], [AW - 8, 8], [8, AH - 8]];
@@ -251,10 +260,10 @@
     tegn(el, v, api) {
       if (!el.querySelector('#dk-cv')) {
         el.innerHTML = '<div class="rt-ban"></div><canvas id="dk-cv" width="700" height="490" style="width:100%;border-radius:14px"></canvas>'
-          + '<div style="display:flex;justify-content:space-between;align-items:center;margin-top:12px;gap:12px">'
-          + '<div id="dk-joy" style="width:150px;height:150px;border-radius:50%;background:#14244a;border:2px solid #2a4180;position:relative;touch-action:none;flex:0 0 150px"><div id="dk-knop" style="position:absolute;width:60px;height:60px;left:45px;top:45px;border-radius:50%;background:#3a86ff;pointer-events:none"></div></div>'
-          + '<button id="dk-kast" class="btn" style="width:130px;height:130px;border-radius:50%;font-size:22px;background:#ff5d8f;flex:0 0 130px;touch-action:none">🥏<br>KAST</button></div>'
-          + '<p class="hint center">Styr med den blå knap · tryk KAST · tastatur: WASD/pile + mellemrum</p>';
+          + '<div id="dk-flade" style="height:min(34vh,260px);margin-top:10px;border-radius:18px;background:#14244a;border:2px dashed #2a4180;display:grid;place-items:center;position:relative;overflow:hidden">'
+          + '<div class="hint center" style="pointer-events:none;padding:10px">👆 Træk for at løbe · tap for at kaste 🥏<br><small>(eller tap med en anden finger, mens du løber)</small></div>'
+          + '<div id="dk-prik" style="position:absolute;width:56px;height:56px;margin:-28px 0 0 -28px;border-radius:50%;background:rgba(58,134,255,.55);display:none;pointer-events:none"></div></div>'
+          + '<p class="hint center">Hele skærmen virker: træk = løb, tap = kast · pc: WASD/pile + mellemrum</p>';
         diskStyring(el, api);
       }
       const mig = v.sp.find(s => s.e === api.mig);
@@ -277,15 +286,37 @@
       if (v.fase === 'slut' && el._slut !== v.vinder + '') { el._slut = v.vinder + ''; v.vinder === api.mig ? api.lyd.vind() : api.lyd.fejl(); }
     },
   });
+  /* Swipe-styring: første finger trækkes som et «flydende joystick» fra der, hvor den rørte skærmen.
+     Et kort tap (uden at trække) kaster disken i den retning, man sidst løb. Et tap med en anden finger kaster også. */
   function diskStyring(el, api) {
-    const joy = el.querySelector('#dk-joy'), knop = el.querySelector('#dk-knop'); let aktiv = null, sidst = 0, jx = 0, jy = 0, sendt = '';
+    el.style.touchAction = 'none';
+    const prik = el.querySelector('#dk-prik');
+    let styr = null, sidst = 0, jx = 0, jy = 0, sendt = '';
+    const tryk = {};
     const send = (tving) => { const s = jx.toFixed(2) + ',' + jy.toFixed(2); const nu = Date.now(); if (s === sendt || (!tving && nu - sidst < 50)) return; sidst = nu; sendt = s; api.kald({ j: [jx, jy] }); };
-    const flyt = e => { const r = joy.getBoundingClientRect(), cx = r.left + r.width / 2, cy = r.top + r.height / 2; let x = (e.clientX - cx) / (r.width / 2 - 20), y = (e.clientY - cy) / (r.height / 2 - 20); const l = Math.hypot(x, y); if (l > 1) { x /= l; y /= l; } jx = x; jy = y; knop.style.left = (45 + x * 45) + 'px'; knop.style.top = (45 + y * 45) + 'px'; send(); };
-    joy.addEventListener('pointerdown', e => { e.preventDefault(); aktiv = e.pointerId; try { joy.setPointerCapture(e.pointerId); } catch (x) {} flyt(e); });
-    joy.addEventListener('pointermove', e => { if (e.pointerId === aktiv) flyt(e); });
-    const slip = e => { if (e.pointerId !== aktiv) return; aktiv = null; jx = 0; jy = 0; knop.style.left = knop.style.top = '45px'; send(true); };
-    joy.addEventListener('pointerup', slip); joy.addEventListener('pointercancel', slip);
-    el.querySelector('#dk-kast').addEventListener('pointerdown', e => { e.preventDefault(); api.kald({ kast: 1 }); api.vib(15); });
+    el.addEventListener('pointerdown', e => {
+      if (e.target.closest('button')) return;
+      tryk[e.pointerId] = { x: e.clientX, y: e.clientY, t: Date.now(), flyt: false };
+      if (styr == null) styr = e.pointerId;
+      try { el.setPointerCapture(e.pointerId); } catch (x) {}
+    });
+    el.addEventListener('pointermove', e => {
+      const p = tryk[e.pointerId]; if (!p) return;
+      const dx = e.clientX - p.x, dy = e.clientY - p.y;
+      if (Math.hypot(dx, dy) > 12) p.flyt = true;
+      if (e.pointerId === styr && p.flyt) {
+        let x = dx / 70, y = dy / 70; const l = Math.hypot(x, y); if (l > 1) { x /= l; y /= l; }
+        jx = x; jy = y; send();
+        const f = el.querySelector('#dk-flade').getBoundingClientRect();
+        if (e.clientY > f.top && e.clientY < f.bottom) { prik.style.display = 'block'; prik.style.left = (e.clientX - f.left) + 'px'; prik.style.top = (e.clientY - f.top) + 'px'; }
+      }
+    });
+    const slip = e => {
+      const p = tryk[e.pointerId]; delete tryk[e.pointerId]; if (!p) return;
+      if (!p.flyt && Date.now() - p.t < 300) { api.kald({ kast: 1 }); api.vib(15); }
+      if (e.pointerId === styr) { styr = null; jx = 0; jy = 0; send(true); prik.style.display = 'none'; }
+    };
+    el.addEventListener('pointerup', slip); el.addEventListener('pointercancel', slip);
     const taster = {};
     const opd = () => { const x = (taster.ArrowRight || taster.d ? 1 : 0) - (taster.ArrowLeft || taster.a ? 1 : 0), y = (taster.ArrowDown || taster.s ? 1 : 0) - (taster.ArrowUp || taster.w ? 1 : 0); jx = x; jy = y; send(true); };
     document.addEventListener('keydown', e => { if (!el.isConnected) return; if (e.key === ' ') { e.preventDefault(); api.kald({ kast: 1 }); return; } if (/^(Arrow|[wasd]$)/.test(e.key) && !taster[e.key]) { taster[e.key] = true; e.preventDefault(); opd(); } });
