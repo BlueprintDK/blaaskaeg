@@ -24,6 +24,7 @@ Spil sammen – hver på sin telefon. 2–4 spillere, iPhone og Android blandet,
 - 🃏 **Snyd** og ⚔️ **Krig** – kortspil, hvor ens kort kun ses på ens egen telefon
 - 🏎️ **Bilbane** – ræs 3 omgange set oppefra
 - 🏰 **Forsvar borgen** – co-op mod bølger af monstre
+- 💣 **Kanondyst** – sigt med vinkel og kraft, regn med vinden og spræng terrænet
 
 ## Teknik
 Én HTML-side med JavaScript. Telefonerne forbindes direkte med [PeerJS](https://peerjs.com) (WebRTC); værtens telefon kører spillene.
