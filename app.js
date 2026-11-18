@@ -337,8 +337,23 @@
   /* 18/11-2026 (Michael): STØT_URL sættes til donationslinket (fx Ko-fi), når kontoen er oprettet – tom = knappen skjules */
   const STØT_URL = 'https://ko-fi.com/blaaskaeg';
   function bundLinks() { return '<div class="bundlinks"><button class="btn gh" id="feedbackknap">💬 Giv feedback</button>'
-    + (STØT_URL ? '<a class="btn gh" href="' + esc(STØT_URL) + '" target="_blank" rel="noopener">☕ Støt Blå skæg</a>' : '') + '</div>'; }
-  function bindBundLinks(root) { const f = root.querySelector('#feedbackknap'); if (f) f.onclick = () => BS.feedback && BS.feedback(); }
+    + (STØT_URL ? '<a class="btn gh" id="støtknap" href="' + esc(STØT_URL) + '" target="_blank" rel="noopener">☕ Støt Blå skæg</a>' : '') + '</div>'; }
+  function bindBundLinks(root) {
+    const f = root.querySelector('#feedbackknap'); if (f) f.onclick = () => BS.feedback && BS.feedback();
+    /* 18/11-2026 (Michael): donation åbnes som vindue inde i appen (Ko-fis eget donationspanel), så man ikke forlader spillet.
+       Linket bevares som reserve: virker vinduet ikke, kan man trykke «Åbn Ko-fi i browseren». */
+    const s = root.querySelector('#støtknap'); if (s) s.onclick = e => { e.preventDefault(); visStøt(); };
+  }
+  function visStøt() {
+    const o = document.createElement('div'); o.className = 'overlay';
+    o.innerHTML = '<div class="card" style="padding:10px;max-width:440px">'
+      + '<div class="row" style="margin-bottom:8px"><b style="text-align:left">☕ ' + T('Støt Blå skæg') + '</b><button class="btn gh" id="støt-luk" style="flex:0 0 auto;padding:8px 14px">✕</button></div>'
+      + '<iframe src="' + esc(STØT_URL) + '/?hidefeed=true&widget=true&embed=true&preview=true" title="Ko-fi" style="border:0;width:100%;height:min(640px,72vh);border-radius:12px;background:#f9f9f9"></iframe>'
+      + '<a class="hint" href="' + esc(STØT_URL) + '" target="_blank" rel="noopener" style="display:block;margin-top:8px;color:var(--mut)">' + T('Åbn Ko-fi i browseren') + ' ↗</a></div>';
+    document.body.appendChild(o);
+    const luk = () => o.remove();
+    o.querySelector('#støt-luk').onclick = luk; o.onclick = e => { if (e.target === o) luk(); };
+  }
 
   /* sprog: dansk er grundsproget i koden; sprog.js oversætter til engelsk */
   function T(s) { return BS.t ? BS.t(s) : s; }

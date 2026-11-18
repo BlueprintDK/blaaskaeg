@@ -26,7 +26,7 @@
     'Luk rummet for alle': 'Close the room for everyone', 'Forlad rummet': 'Leave the room',
     'Stop spillet for alle og gå tilbage til lobbyen': 'Stop the game for everyone and go back to the lobby',
     'Del koden – de andre åbner Blå skæg og skriver den': 'Share the code – the others open Blå skæg and enter it',
-    'Vælg et spil': 'Choose a game', 'Nulstil point': 'Reset points', 'Spil igen': 'Play again', 'Giv feedback': 'Give feedback', 'Støt Blå skæg': 'Support Blå skæg',
+    'Vælg et spil': 'Choose a game', 'Nulstil point': 'Reset points', 'Spil igen': 'Play again', 'Giv feedback': 'Give feedback', 'Støt Blå skæg': 'Support Blå skæg', 'Åbn Ko-fi i browseren': 'Open Ko-fi in the browser',
     'Din tur': 'Your turn', 'DIN TUR': 'YOUR TURN', 'Uafgjort': 'Draw', 'Venter på de andre': 'Waiting for the others', 'mod': 'vs', 'ingen point': 'no points',
     // spilnavne
     'Sænk slagskibe': 'Battleships', 'Ordhjulet': 'Word Wheel', 'Sæt knappenålen': 'Drop the Pin', 'Lysbaner': 'Light Cycles', 'Diskos-arena': 'Disc Arena',
