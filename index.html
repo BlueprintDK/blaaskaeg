@@ -4,6 +4,18 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
 <title>Blå skæg</title>
+<meta name="description" content="Spil sammen – hver på sin telefon. 17 spil for 2–4 spillere på iPhone og Android. Intet login, gratis.">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Blå skæg">
+<meta property="og:title" content="Blå skæg – spil sammen på hver sin telefon">
+<meta property="og:description" content="Ludo, Yatzy, Kanondyst, Tegn og gæt og 13 andre spil for 2–4 spillere. iPhone og Android, intet login.">
+<meta property="og:url" content="https://blueprintdk.github.io/blaaskaeg/">
+<meta property="og:image" content="https://blueprintdk.github.io/blaaskaeg/og.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Blå skæg – en glad figur med blåt skæg og guldkrone">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="https://blueprintdk.github.io/blaaskaeg/og.png">
 <meta name="theme-color" content="#0b1630">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
@@ -54,25 +66,34 @@ canvas{display:block;max-width:100%;touch-action:none}
 .pad button{border:0;border-radius:14px;background:var(--panel2);color:#fff;font-size:24px;font-weight:900}
 .overlay{position:fixed;inset:0;background:rgba(5,10,25,.82);display:grid;place-items:center;z-index:40;padding:16px}
 .overlay .card{max-width:420px;width:100%;text-align:center}
+.sprogvalg{display:flex;justify-content:flex-end;gap:6px;margin-top:4px}
+.sprogvalg button{border:1px solid var(--line);background:transparent;color:var(--mut);border-radius:999px;padding:7px 12px;font:inherit;font-size:14px;font-weight:700;cursor:pointer}
+.sprogvalg button.on{background:var(--panel2);color:var(--tx);border-color:var(--blue)}
+.bundlinks{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:22px}
+.bundlinks .btn{font-size:14px;padding:10px 14px;text-decoration:none}
+.overlay .card.fb{text-align:left}
+textarea.in{width:100%;min-height:130px;resize:vertical;background:var(--bg);border:1px solid var(--line);color:var(--tx);border-radius:12px;padding:12px;font:inherit;font-size:16px;user-select:text;-webkit-user-select:text}
+.hp{position:absolute;left:-9999px;width:1px;height:1px;opacity:0}
 </style>
 </head>
 <body>
 <div id="app"></div>
 <div id="toast" class="hidden"></div>
-<script src="app.js?v=4"></script>
-<script src="spil-hangman.js?v=4"></script>
-<script src="spil-tegn.js?v=4"></script>
-<script src="spil-ordhjul.js?v=4"></script>
-<script src="spil-slagskib.js?v=4"></script>
-<script src="spil-yatzy.js?v=4"></script>
-<script src="spil-ludo.js?v=4"></script>
-<script src="spil-braet.js?v=4"></script>
-<script src="spil-kort.js?v=4"></script>
-<script src="spil-knappenaal.js?v=4"></script>
-<script src="spil-realtid.js?v=4"></script>
-<script src="spil-bil.js?v=4"></script>
-<script src="spil-borg.js?v=4"></script>
-<script src="spil-kanon.js?v=7"></script>
+<script src="app.js?v=5"></script>
+<script src="sprog.js?v=1"></script>
+<script src="spil-hangman.js?v=5"></script>
+<script src="spil-tegn.js?v=5"></script>
+<script src="spil-ordhjul.js?v=5"></script>
+<script src="spil-slagskib.js?v=5"></script>
+<script src="spil-yatzy.js?v=5"></script>
+<script src="spil-ludo.js?v=5"></script>
+<script src="spil-braet.js?v=5"></script>
+<script src="spil-kort.js?v=5"></script>
+<script src="spil-knappenaal.js?v=5"></script>
+<script src="spil-realtid.js?v=5"></script>
+<script src="spil-bil.js?v=5"></script>
+<script src="spil-borg.js?v=5"></script>
+<script src="spil-kanon.js?v=8"></script>
 <script>BS.start();</script>
 </body>
 </html>

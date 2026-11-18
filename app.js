@@ -103,13 +103,15 @@
         return;
       }
       case 'start': if (erV) return startSpil(c.id, c.opt); return;
-      case 'lobby': if (erV) { stopTicker(); R.fase = 'lobby'; R.spil = null; } return;
+      case 'lobby':
+      /* 18/11-2026 (Michael): alle spillere kan stoppe det igangværende spil og gå tilbage til lobbyen */
+      case 'stop': if (p && R.spil) { stopTicker(); R.fase = 'lobby'; R.spil = null; if (c.h === 'stop') R.stop = { af: p.navn, n: (R.stop ? R.stop.n : 0) + 1 }; } return;
       case 'nulstil': if (erV) R.spillere.forEach(x => { x.point = 0; }); return;
       case 'spil': { if (!p || !R.spil) return; const def = BS.spil[R.spil.id]; if (def && def.kald) def.kald(H, R.spil.G, e, c.d || {}); return; }
     }
   }
   function grund(e) {
-    return { kode: R.kode, vaert: R.vaert, mig: e, fase: R.fase, nr: R.nr || 0,
+    return { kode: R.kode, vaert: R.vaert, mig: e, fase: R.fase, nr: R.nr || 0, stop: R.stop || null,
       spillere: R.spillere.map(p => ({ enhed: p.enhed, navn: p.navn, farve: p.farve, point: p.point, online: p.online })) };
   }
   function visningFor(e, fælles) {
@@ -220,24 +222,31 @@
   const navnPå = (v, e) => { const p = v.spillere.find(x => x.enhed === e); return p ? p.navn : '?'; };
   const farvePå = (v, e) => { const p = v.spillere.find(x => x.enhed === e); return p ? p.farve : '#888'; };
 
+  let sidsteStop = null;
   function vis(v) {
     visning = v;
     if (!v) { skærm = ''; return tegnStart(); }
+    if (v.stop && sidsteStop !== null && v.stop.n !== sidsteStop) toast('⏹ ' + v.stop.af + ' stoppede spillet');
+    sidsteStop = v.stop ? v.stop.n : 0;
     if (v.fase !== 'spil' || !v.spil) { skærm = 'lobby'; return tegnLobby(v); }
     tegnSpilSkærm(v);
   }
 
   function tegnStart() {
     const navn = lsGet('navn', '');
-    app().innerHTML = '<h1>🧔🏻 Blå skæg</h1><p class="sub">Spil sammen – hver på sin telefon. 2–4 spillere.</p>'
+    app().innerHTML = '<div class="sprogvalg"><button data-sprog="da" class="' + (BS.sprog === 'da' ? 'on' : '') + '">🇩🇰 Dansk</button><button data-sprog="en" class="' + (BS.sprog === 'en' ? 'on' : '') + '">🇬🇧 English</button></div>'
+      + '<h1>🧔🏻 Blå skæg</h1><p class="sub">Spil sammen – hver på sin telefon. 2–4 spillere.</p>'
       + '<div class="card"><label for="navn">Dit navn</label><input class="in" id="navn" maxlength="14" autocomplete="off" value="' + esc(navn) + '">'
       + '<div style="height:14px"></div><button class="btn big ok" id="opret">➕ Opret nyt rum</button></div>'
       + '<div class="card"><label for="kode">Deltag med kode</label><div class="row"><input class="in" id="kode" inputmode="numeric" maxlength="4" placeholder="1234" style="text-align:center;letter-spacing:.25em;font-size:22px">'
       + '<button class="btn" id="deltag" style="flex:0 0 36%">Deltag</button></div></div>'
       + '<p class="hint center" id="msg" style="min-height:1.4em;color:var(--gold)"></p>'
       + '<div class="card"><p class="hint" style="margin:0 0 8px">Spil i Blå skæg:</p><div class="chips">'
-      + BS.rækkefølge.map(id => '<span class="chip">' + BS.spil[id].e + ' ' + esc(BS.spil[id].navn) + '</span>').join('') + '</div></div>';
+      + BS.rækkefølge.map(id => '<span class="chip">' + BS.spil[id].e + ' ' + esc(BS.spil[id].navn) + '</span>').join('') + '</div></div>'
+      + bundLinks();
     const $ = id => document.getElementById(id);
+    app().querySelectorAll('[data-sprog]').forEach(b => { b.onclick = () => { BS.sætSprog(b.dataset.sprog); tegnStart(); }; });
+    bindBundLinks(app());
     const hent = () => { const n = $('navn').value.trim(); if (!n) { $('msg').textContent = 'Skriv dit navn først.'; $('navn').focus(); return null; } lsSet('navn', n); return n; };
     const travl = (b, t) => { $('opret').disabled = $('deltag').disabled = !!t; if (t) b.textContent = t; };
     $('opret').onclick = () => { const n = hent(); if (!n) return; travl($('opret'), 'Opretter…'); opretRum(n).catch(e => { tegnStart(); toast(e.message); }); };
@@ -251,7 +260,7 @@
 
   function topHTML(v, titel) {
     return '<div class="top"><div class="tt">' + titel + '</div><span class="hint" style="font-weight:800">Rum ' + esc(v.kode) + '</span>'
-      + (erVært(v) && v.fase === 'spil' ? '<button class="btn gh" data-c="lobby">🏠</button>' : '')
+      + (v.fase === 'spil' ? '<button class="btn gh" id="stop" title="Stop spillet">⏹ Stop</button>' : '')
       + '<button class="btn gh" id="forlad">' + (erVært(v) ? 'Luk' : 'Forlad') + '</button></div>';
   }
   function chipsHTML(v, point) {
@@ -260,7 +269,9 @@
   }
   function bindTop(root, v) {
     const f = root.querySelector('#forlad');
-    if (f) f.onclick = () => { if (confirm(erVært(v) ? 'Luk rummet for alle?' : 'Forlad rummet?')) forlad(); };
+    if (f) f.onclick = () => { if (confirm(T(erVært(v) ? 'Luk rummet for alle?' : 'Forlad rummet?'))) forlad(); };
+    const s = root.querySelector('#stop');
+    if (s) s.onclick = () => { if (confirm(T('Stop spillet for alle og gå tilbage til lobbyen?'))) kald({ h: 'stop' }); };
     root.querySelectorAll('[data-c]').forEach(b => { b.onclick = () => kald({ h: b.dataset.c }); });
   }
 
@@ -280,9 +291,9 @@
           + s.valg.liste.map(([k, t]) => '<option value="' + k + '"' + (gemt === k ? ' selected' : '') + '>' + esc(t) + '</option>').join('') + '</select>' : '')
         + '</div>';
     });
-    h += '</div>' + (vært ? '<div class="hostbar"><button class="btn gh" data-c="nulstil">↺ Nulstil point</button></div>' : '');
+    h += '</div>' + (vært ? '<div class="hostbar"><button class="btn gh" data-c="nulstil">↺ Nulstil point</button></div>' : '') + bundLinks();
     app().innerHTML = h;
-    bindTop(app(), v);
+    bindTop(app(), v); bindBundLinks(app());
     app().querySelectorAll('[data-valg]').forEach(s => { s.onclick = e => e.stopPropagation(); s.onchange = () => lsSet('valg_' + s.dataset.valg, s.value); });
     app().querySelectorAll('[data-start]').forEach(b => {
       b.onclick = () => {
@@ -321,6 +332,16 @@
       const ig = bund.querySelector('#igen'); if (ig) ig.onclick = () => kald({ h: 'start', id: v.spil.id, opt: v.spil.opt });
     }
   }
+
+  /* links nederst på start- og lobbyskærmen: feedback (og senere støt) */
+  /* 18/11-2026 (Michael): STØT_URL sættes til donationslinket (fx Ko-fi), når kontoen er oprettet – tom = knappen skjules */
+  const STØT_URL = '';
+  function bundLinks() { return '<div class="bundlinks"><button class="btn gh" id="feedbackknap">💬 Giv feedback</button>'
+    + (STØT_URL ? '<a class="btn gh" href="' + esc(STØT_URL) + '" target="_blank" rel="noopener">☕ Støt Blå skæg</a>' : '') + '</div>'; }
+  function bindBundLinks(root) { const f = root.querySelector('#feedbackknap'); if (f) f.onclick = () => BS.feedback && BS.feedback(); }
+
+  /* sprog: dansk er grundsproget i koden; sprog.js oversætter til engelsk */
+  function T(s) { return BS.t ? BS.t(s) : s; }
 
   /* Tur-ur: viser de sekunder, der er tilbage af en tur. Værten sender «rest» (ms); hver telefon
      regner sin egen sluttid ud fra modtagelsen, så urene ikke skal være stillet ens. */

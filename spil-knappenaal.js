@@ -150,7 +150,7 @@
       const ring = r => { r.forEach(([lo, la], i) => { const [x, y] = proj.til(K, cv, la, lo); i ? c.lineTo(x, y) : c.moveTo(x, y); }); c.closePath(); };
       LAND.features.forEach(f => { const g = f.geometry; (g.type === 'Polygon' ? [g.coordinates] : g.coordinates).forEach(poly => poly.forEach(ring)); });
       c.fill('evenodd'); c.stroke();
-    } else { c.fillStyle = '#9fb0d6'; c.font = (20 * sk) + 'px sans-serif'; c.textAlign = 'center'; c.fillText('Henter kort…', w / 2, h / 2); }
+    } else { c.fillStyle = '#9fb0d6'; c.font = (20 * sk) + 'px sans-serif'; c.textAlign = 'center'; c.fillText(BS.t('Henter kort…'), w / 2, h / 2); }
     const nål = (la, lo, farve, stor) => {
       const [x, y] = proj.til(K, cv, la, lo), r = (stor ? 11 : 8) * sk;
       c.beginPath(); c.moveTo(x, y); c.lineTo(x - r * .7, y - r * 1.6); c.arc(x, y - r * 1.9, r, Math.PI * .8, Math.PI * 2.2); c.closePath();
@@ -162,7 +162,7 @@
       Object.entries(v.pins).forEach(([e, p]) => { const [x, y] = proj.til(K, cv, p[0], p[1]); c.setLineDash([6 * sk, 5 * sk]); c.strokeStyle = api.farve(e); c.lineWidth = 2.5 * sk; c.beginPath(); c.moveTo(x, y); c.lineTo(rx, ry); c.stroke(); c.setLineDash([]); });
       Object.entries(v.pins).forEach(([e, p]) => nål(p[0], p[1], api.farve(e)));
       c.beginPath(); c.arc(rx, ry, 9 * sk, 0, Math.PI * 2); c.fillStyle = '#ffd166'; c.fill(); c.lineWidth = 3 * sk; c.strokeStyle = '#0b1630'; c.stroke();
-      c.font = 'bold ' + (18 * sk) + 'px sans-serif'; c.fillStyle = '#0b1630'; c.textAlign = 'center'; c.fillText(v.sted, rx, ry - 16 * sk);
+      c.font = 'bold ' + (18 * sk) + 'px sans-serif'; c.fillStyle = '#0b1630'; c.textAlign = 'center'; c.fillText(BS.t(v.sted), rx, ry - 16 * sk);
     } else {
       const p = v.min || el._kladde; if (p) nål(p[0], p[1], api.farve(api.mig), true);
     }

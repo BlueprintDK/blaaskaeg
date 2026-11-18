@@ -5,7 +5,8 @@
   const NAVN = { 11: 'J', 12: 'D', 13: 'K', 14: 'E' }, LANG = { 11: 'knægt', 12: 'dame', 13: 'konge', 14: 'es' };
   const KUL = ['♠', '♥', '♦', '♣'];
   const værdi = k => k % 13 + 2, kulør = k => (k / 13) | 0;
-  const vnavn = v => NAVN[v] || String(v), vlang = (v, n) => (LANG[v] ? (n > 1 ? { 11: 'knægte', 12: 'damer', 13: 'konger', 14: 'esser' }[v] : LANG[v]) : (n > 1 ? v + '\'ere' : v + '\'er'));
+  const NAVN_EN = { 11: 'J', 12: 'Q', 13: 'K', 14: 'A' };   // 18/11-2026: engelske kortbogstaver, når telefonen kører på engelsk
+  const vnavn = v => (BS.sprog === 'en' ? NAVN_EN : NAVN)[v] || String(v), vlang = (v, n) => (LANG[v] ? (n > 1 ? { 11: 'knægte', 12: 'damer', 13: 'konger', 14: 'esser' }[v] : LANG[v]) : (n > 1 ? v + '\'ere' : v + '\'er'));
   function kortHTML(k, opt) {
     opt = opt || {}; const v = værdi(k), s = kulør(k), rød = s === 1 || s === 2;
     const st = 'display:inline-flex;flex-direction:column;justify-content:space-between;width:' + (opt.b || 48) + 'px;height:' + Math.round((opt.b || 48) * 1.4) + 'px;padding:4px 5px;border-radius:8px;background:#fff;color:' + (rød ? '#d62839' : '#0b1630')

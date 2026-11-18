@@ -20,12 +20,30 @@
     ['SØRØVER', 'Eventyr'], ['DRAGE', 'Eventyr'], ['TROLDMAND', 'Eventyr'], ['HAVFRUE', 'Eventyr'], ['SKATTEKORT', 'Eventyr'],
     ['TRAMPOLIN', 'Leg'], ['GYNGE', 'Leg'], ['SJIPPETOV', 'Leg'], ['VERDENSKORT', 'Ting'], ['BLÅBÆR', 'Frugt og grønt'],
   ];
-  const ALF = 'ABCDEFGHIJKLMNOPQRSTUVWXYZÆØÅ'.split('');
+  /* 18/11-2026 (Michael): engelske ord, når værten har valgt English på startskærmen */
+  const ORD_EN = [
+    ['ELEPHANT', 'Animals'], ['KANGAROO', 'Animals'], ['PENGUIN', 'Animals'], ['TURTLE', 'Animals'], ['OCTOPUS', 'Animals'], ['GIRAFFE', 'Animals'], ['POLAR BEAR', 'Animals'],
+    ['CROCODILE', 'Animals'], ['FLAMINGO', 'Animals'], ['SQUIRREL', 'Animals'], ['PARROT', 'Animals'], ['WALRUS', 'Animals'],
+    ['STRAWBERRY', 'Fruit and veg'], ['PINEAPPLE', 'Fruit and veg'], ['CAULIFLOWER', 'Fruit and veg'], ['CUCUMBER', 'Fruit and veg'], ['WATERMELON', 'Fruit and veg'], ['BLUEBERRY', 'Fruit and veg'],
+    ['PANCAKE', 'Food'], ['SPAGHETTI', 'Food'], ['MEATBALL', 'Food'], ['SANDWICH', 'Food'], ['PIZZA', 'Food'], ['CHEESEBURGER', 'Food'], ['LIQUORICE', 'Sweets'],
+    ['MOTORCYCLE', 'Transport'], ['HELICOPTER', 'Transport'], ['SUBMARINE', 'Transport'], ['TRACTOR', 'Transport'], ['ROCKET', 'Transport'], ['BICYCLE', 'Transport'],
+    ['TRUMPET', 'Music'], ['GUITAR', 'Music'], ['DRUM KIT', 'Music'], ['PIANO', 'Music'],
+    ['LIGHTHOUSE', 'Building'], ['CASTLE', 'Building'], ['WINDMILL', 'Building'], ['SKYSCRAPER', 'Building'],
+    ['VOLCANO', 'Nature'], ['RAINBOW', 'Nature'], ['WATERFALL', 'Nature'], ['THUNDERSTORM', 'Nature'], ['GLACIER', 'Nature'],
+    ['UMBRELLA', 'Things'], ['TOOTHBRUSH', 'Things'], ['FRIDGE', 'Things'], ['VACUUM CLEANER', 'Things'], ['COMPASS', 'Things'], ['SCREWDRIVER', 'Things'], ['WORLD MAP', 'Things'],
+    ['FOOTBALL', 'Sport'], ['HANDBALL', 'Sport'], ['SWIMMING', 'Sport'], ['BADMINTON', 'Sport'], ['SKIING', 'Sport'],
+    ['ASTRONAUT', 'Job'], ['FIREFIGHTER', 'Job'], ['DENTIST', 'Job'], ['POLICE OFFICER', 'Job'], ['CHEF', 'Job'],
+    ['SANTA CLAUS', 'Holiday'], ['EASTER EGG', 'Holiday'], ['FIREWORKS', 'Holiday'], ['SNOWMAN', 'Holiday'],
+    ['PIRATE', 'Fairy tale'], ['DRAGON', 'Fairy tale'], ['WIZARD', 'Fairy tale'], ['MERMAID', 'Fairy tale'], ['TREASURE MAP', 'Fairy tale'],
+    ['TRAMPOLINE', 'Play'], ['SWING', 'Play'], ['SKIPPING ROPE', 'Play'], ['HIDE AND SEEK', 'Play'],
+  ];
+  const ALF = 'ABCDEFGHIJKLMNOPQRSTUVWXYZÆØÅ'.split(''), ALF_EN = ALF.slice(0, 26);
   /* 18/11-2026 (Michael): 30 sek. pr. tur. Gætter man ikke i tide, går turen videre, og man mister 2 point. */
   const FRIST = 30000, STRAF = 2;
   const næste = (H, G, i) => { const n = G.rk.length; for (let k = 1; k <= n; k++) { const j = (i + k) % n; const p = H.find(G.rk[j]); if (p && p.online) return j; } return i; };
   function nytOrd(H, G) {
-    let w; do { w = ORD[rnd(ORD.length)]; } while (G.brugt.includes(w[0]) && G.brugt.length < ORD.length - 1);
+    const L = G.en ? ORD_EN : ORD;
+    let w; do { w = L[rnd(L.length)]; } while (G.brugt.includes(w[0]) && G.brugt.length < L.length - 1);
     G.brugt.push(w[0]);
     Object.assign(G, { ord: w[0], hint: w[1], gaet: [], fejl: 0, slut: null, sidst: null, frist: Date.now() + FRIST });
   }
@@ -33,7 +51,7 @@
     id: 'hangman', navn: 'Hangman', e: '🪢', min: 2, max: 4,
     d: 'Gæt et bogstav på skift. Rigtigt = point, og du fortsætter.',
     start(H) {
-      const G = { rk: H.spillere().map(p => p.enhed), tur: 0, brugt: [], runde: 0 };
+      const G = { rk: H.spillere().map(p => p.enhed), tur: 0, brugt: [], runde: 0, en: BS.sprog === 'en' };
       G.tur = rnd(G.rk.length); nytOrd(H, G); return G;
     },
     tickMs: 500,
@@ -54,16 +72,16 @@
       const navn = H.navn(e);
       if (d.helt) {
         const g = String(d.helt).toUpperCase().replace(/\s+/g, '');
-        if (g === G.ord) { H.giv(e, 3 + [...new Set(G.ord)].filter(c => !G.gaet.includes(c)).length); G.gaet = [...new Set(G.ord)]; G.slut = { vandt: true, af: e }; G.sidst = { navn, b: g, ok: true }; }
+        if (g === G.ord.replace(/\s+/g, '')) { H.giv(e, 3 + [...new Set(g)].filter(c => !G.gaet.includes(c)).length); G.gaet = [...new Set(g)]; G.slut = { vandt: true, af: e }; G.sidst = { navn, b: g, ok: true }; }
         else { G.fejl = Math.min(6, G.fejl + 2); G.sidst = { navn, b: g, ok: false }; if (G.fejl >= 6) G.slut = { vandt: false }; else G.tur = næste(H, G, G.tur); }
         return;
       }
       const b = String(d.b || '').toUpperCase();
-      if (!ALF.includes(b) || G.gaet.includes(b)) return;
+      if (!(G.en ? ALF_EN : ALF).includes(b) || G.gaet.includes(b)) return;
       G.gaet.push(b);
       if (G.ord.includes(b)) {
         H.giv(e, 1); G.sidst = { navn, b, ok: true };
-        if ([...G.ord].every(c => G.gaet.includes(c))) { H.giv(e, 3); G.slut = { vandt: true, af: e }; }
+        if ([...G.ord].every(c => c === ' ' || G.gaet.includes(c))) { H.giv(e, 3); G.slut = { vandt: true, af: e }; }
       } else {
         G.fejl++; G.sidst = { navn, b, ok: false };
         if (G.fejl >= 6) G.slut = { vandt: false }; else G.tur = næste(H, G, G.tur);
@@ -72,7 +90,7 @@
     frakoblet(H, G, e) { if (G.rk[G.tur] === e && !G.slut) { G.tur = næste(H, G, G.tur); G.frist = Date.now() + FRIST; } },
     skiftEnhed(H, G, gl, ny) { G.rk = G.rk.map(x => x === gl ? ny : x); },
     view(H, G) {
-      return { maske: [...G.ord].map(c => G.gaet.includes(c) ? c : '_'), ord: G.slut ? G.ord : null, hint: G.hint, gaet: G.gaet, fejl: G.fejl,
+      return { maske: [...G.ord].map(c => c === ' ' || G.gaet.includes(c) ? c : '_'), ord: G.slut ? G.ord : null, hint: G.hint, en: !!G.en, gaet: G.gaet, fejl: G.fejl,
         tur: G.rk[G.tur], sidst: G.sidst, slut: G.slut, runde: G.runde, rest: G.slut ? 0 : Math.max(0, G.frist - Date.now()) };
     },
     felles: true,
@@ -94,7 +112,7 @@
         if (api.vært) h += '<div class="hostbar"><button class="btn ok big" id="hg-ny">Nyt ord →</button></div>';
       } else {
         h += '<div class="banner' + (min ? ' min' : '') + '">' + (min ? '🎯 Din tur – vælg et bogstav' : '⏳ ' + esc(api.navn(v.tur)) + 's tur') + '</div><div id="hg-ur"></div>'
-          + '<div style="display:grid;grid-template-columns:repeat(8,1fr);gap:6px">' + ALF.map(c => '<button class="btn" data-b="' + c + '" style="padding:10px 0;' + (v.gaet.includes(c) ? 'opacity:.2' : '') + '"' + (!min || v.gaet.includes(c) ? ' disabled' : '') + '>' + c + '</button>').join('') + '</div>'
+          + '<div style="display:grid;grid-template-columns:repeat(8,1fr);gap:6px">' + (v.en ? ALF_EN : ALF).map(c => '<button class="btn" data-b="' + c + '" style="padding:10px 0;' + (v.gaet.includes(c) ? 'opacity:.2' : '') + '"' + (!min || v.gaet.includes(c) ? ' disabled' : '') + '>' + c + '</button>').join('') + '</div>'
           + (min ? '<div class="row" style="margin-top:12px"><input class="in" id="hg-helt" placeholder="Gæt hele ordet" style="font-size:16px"><button class="btn sec" id="hg-gaet" style="flex:0 0 30%">Gæt</button></div><p class="hint center">Forkert gæt på hele ordet koster 2 liv.</p>' : '');
       }
       const sig = JSON.stringify(v) + api.mig;

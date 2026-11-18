@@ -10,6 +10,14 @@
     + 'stol bord seng lampe ur telefon computer fjernsyn guitar trommer klaver bog blyant saks paraply briller hat sko sok handske nøgle lås '
     + 'fodbold tennis ski skøjter drage ballon gave juletræ snemand spøgelse robot pirat konge prinsesse trold dinosaur drage-flyver '
     + 'hjerte smil tand øje næse øre hånd fod skæg tandbørste toilet badekar brusebad køleskab komfur grill telt bål kompas skattekiste').split(' ').filter(Boolean);
+  /* 18/11-2026 (Michael): engelske ord, når værten har valgt English */
+  const ORD_EN = ('dog cat horse cow pig sheep hen duck fish shark whale dolphin elephant giraffe lion tiger zebra monkey snake frog turtle butterfly spider bee ant snail owl penguin '
+    + 'house castle church lighthouse bridge train car bus bicycle motorcycle plane helicopter boat submarine rocket tractor ambulance '
+    + 'sun moon star cloud rain snow lightning rainbow tree flower cactus palm mushroom mountain volcano island beach wave '
+    + 'apple banana pear strawberry carrot pizza burger icecream cake pancake sausage egg cheese bread cup fork '
+    + 'chair table bed lamp clock phone computer television guitar drums piano book pencil scissors umbrella glasses hat shoe sock glove key lock '
+    + 'football tennis skis skates kite balloon present christmastree snowman ghost robot pirate king princess troll dinosaur '
+    + 'heart smile tooth eye nose ear hand foot beard toothbrush toilet bathtub shower fridge oven grill tent campfire compass treasurechest').split(' ').filter(Boolean);
   const VÆLG = 15000, TEGNE = 80000, VIS = 5000;
   const norm = s => String(s || '').toLowerCase().replace(/[^a-zæøå]/g, '');
   const FARVER = ['#0b1630', '#ef476f', '#3a86ff', '#06d6a0', '#ffd166', '#ff8c42', '#8338ec', '#ffffff'];
@@ -19,7 +27,7 @@
     if (G.nr > G.maks) { G.fase = 'slut'; const top = Math.max(...Object.values(G.sum)); G.slut = { vindere: Object.keys(G.sum).filter(e => G.sum[e] === top) }; return; }
     G.tur = (G.nr - 1) % G.rk.length;
     let n = 0; while (!(H.find(G.rk[G.tur]) || {}).online && n++ < G.rk.length) G.tur = (G.tur + 1) % G.rk.length;
-    G.valg = bland(ORD.filter(o => !G.brugt.includes(o))).slice(0, 3);
+    G.valg = bland((G.en ? ORD_EN : ORD).filter(o => !G.brugt.includes(o))).slice(0, 3);
     Object.assign(G, { fase: 'vælg', ord: null, streger: [], gættet: [], gæt: [], frist: Date.now() + VÆLG, start: 0 });
   }
   function begynd(G, i) { G.ord = G.valg[i] || G.valg[0]; G.brugt.push(G.ord); G.fase = 'tegn'; G.frist = Date.now() + TEGNE; G.start = Date.now(); }
@@ -31,7 +39,7 @@
   BS.registrer({
     id: 'tegn', navn: 'Tegn og gæt', e: '🎨', min: 2, max: 4, tickMs: 500,
     d: 'Én tegner, resten gætter. Hurtigste gæt får flest point.',
-    start(H) { const rk = H.spillere().map(p => p.enhed), sum = {}; rk.forEach(e => { sum[e] = 0; }); const G = { rk, nr: 0, maks: rk.length * 2, brugt: [], sum, slut: null }; nyRunde(H, G); return G; },
+    start(H) { const rk = H.spillere().map(p => p.enhed), sum = {}; rk.forEach(e => { sum[e] = 0; }); const G = { rk, nr: 0, maks: rk.length * 2, brugt: [], sum, slut: null, en: BS.sprog === 'en' }; nyRunde(H, G); return G; },
     tick(H, G) {
       if (G.fase === 'slut') return false;
       const nu = Date.now();

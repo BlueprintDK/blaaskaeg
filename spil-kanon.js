@@ -294,7 +294,7 @@
       if (!t.begravet) { tegnT(t, i); return; }
       const sy = jordVed(V.jord, t.x) - 14, nv = api.navn(t.e);
       c.font = 'bold 22px sans-serif'; c.textAlign = 'center'; c.fillText('⛏️', t.x, sy - 4 + Math.sin(nu / 200) * 3);
-      c.font = 'bold 16px sans-serif'; c.lineWidth = 3; c.strokeStyle = 'rgba(0,0,0,.7)'; c.strokeText(nv + ' (begravet)', t.x, sy - 26); c.fillStyle = '#fff'; c.fillText(nv + ' (begravet)', t.x, sy - 26);
+      c.font = 'bold 16px sans-serif'; c.lineWidth = 3; c.strokeStyle = 'rgba(0,0,0,.7)'; c.strokeText(nv + ' ' + BS.t('(begravet)'), t.x, sy - 26); c.fillStyle = '#fff'; c.fillText(nv + ' ' + BS.t('(begravet)'), t.x, sy - 26);
     });
     /* sigtelinje for den, der har tur */
     const tt = v.tanks[v.tur];
@@ -334,7 +334,7 @@
     c.restore();
     /* vind */
     const vs = v.vind; c.fillStyle = 'rgba(0,0,0,.35)'; rund(c, VW / 2 - 110, 12, 220, 44, 14); c.fill();
-    c.fillStyle = '#fff'; c.font = 'bold 20px sans-serif'; c.textAlign = 'center'; c.fillText('Vind ' + (vs === 0 ? '–' : Math.abs(vs)), VW / 2, 42);
+    c.fillStyle = '#fff'; c.font = 'bold 20px sans-serif'; c.textAlign = 'center'; c.fillText(BS.t('Vind') + ' ' + (vs === 0 ? '–' : Math.abs(vs)), VW / 2, 42);
     if (vs) { const d = Math.sign(vs), L = 16 + Math.abs(vs) * .7; c.strokeStyle = '#9fe3ff'; c.lineWidth = 5; c.beginPath(); c.moveTo(VW / 2 + 60 * d, 34); c.lineTo(VW / 2 + (60 + L) * d, 34); c.lineTo(VW / 2 + (52 + L) * d, 26); c.moveTo(VW / 2 + (60 + L) * d, 34); c.lineTo(VW / 2 + (52 + L) * d, 42); c.stroke(); }
   }
   /* kanonen tegnes 1,5× større end i fysikken, så den kan ses på en telefon */

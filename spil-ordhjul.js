@@ -27,15 +27,36 @@
     ['Dyr', 'EN SOVENDE ISBJØRN'], ['Dyr', 'EN FLOK VILDE HESTE'], ['Dyr', 'DEN STORE BLÅHVAL'], ['Dyr', 'EN NYSGERRIG RÆVEUNGE'],
     ['Højtid', 'GLÆDELIG JUL OG GODT NYTÅR'], ['Højtid', 'SANKTHANSBÅL VED STRANDEN'], ['Højtid', 'SLÅ KATTEN AF TØNDEN'], ['Højtid', 'PÅSKEHAREN GEMMER ÆG'],
   ];
+  /* 18/11-2026 (Michael): engelske gåder, når værten har valgt English. På engelsk er Y en konsonant. */
+  const GÅDER_EN = [
+    ['Proverb', 'BETTER LATE THAN NEVER'], ['Proverb', 'PRACTICE MAKES PERFECT'], ['Proverb', 'THE EARLY BIRD CATCHES THE WORM'],
+    ['Proverb', 'EVERY CLOUD HAS A SILVER LINING'], ['Proverb', 'ACTIONS SPEAK LOUDER THAN WORDS'], ['Proverb', 'TWO HEADS ARE BETTER THAN ONE'],
+    ['Proverb', 'WHEN IN ROME DO AS THE ROMANS DO'], ['Proverb', 'DONT PUT ALL YOUR EGGS IN ONE BASKET'], ['Proverb', 'BIRDS OF A FEATHER FLOCK TOGETHER'],
+    ['Phrase', 'BREAK A LEG'], ['Phrase', 'PIECE OF CAKE'], ['Phrase', 'KILL TWO BIRDS WITH ONE STONE'], ['Phrase', 'ONCE IN A BLUE MOON'],
+    ['Phrase', 'UNDER THE WEATHER'], ['Phrase', 'IT IS NOT ROCKET SCIENCE'], ['Phrase', 'COLD FEET'], ['Phrase', 'HIT THE NAIL ON THE HEAD'],
+    ['Place', 'THE LITTLE MERMAID'], ['Place', 'TIVOLI GARDENS'], ['Place', 'LEGOLAND IN BILLUND'], ['Place', 'THE EIFFEL TOWER'],
+    ['Place', 'THE GREAT WALL OF CHINA'], ['Place', 'THE STATUE OF LIBERTY'], ['Place', 'MOUNT EVEREST'], ['Place', 'THE PYRAMIDS OF EGYPT'], ['Place', 'GRAND CANYON'],
+    ['Food and drink', 'FISH AND CHIPS'], ['Food and drink', 'HOT CHOCOLATE WITH CREAM'], ['Food and drink', 'PEANUT BUTTER SANDWICH'],
+    ['Food and drink', 'APPLE PIE WITH ICE CREAM'], ['Food and drink', 'SPAGHETTI AND MEATBALLS'], ['Food and drink', 'PANCAKES WITH SYRUP'],
+    ['Thing', 'A RUSTY BICYCLE CHAIN'], ['Thing', 'THE TV REMOTE CONTROL'], ['Thing', 'A WARM WOOLLY JUMPER'], ['Thing', 'A PHONE WITH A CRACKED SCREEN'],
+    ['Thing', 'A BOX OF LEGO BRICKS'], ['Thing', 'AN OLD TREASURE CHEST'],
+    ['Activity', 'BUILDING A SNOWMAN'], ['Activity', 'A WALK IN THE WOODS'], ['Activity', 'EATING ICE CREAM ON THE BEACH'], ['Activity', 'RIDING A MOTORCYCLE'],
+    ['Activity', 'PLAYING BOARD GAMES ALL NIGHT'], ['Activity', 'FISHING BY THE LAKE'], ['Activity', 'JUMPING ON A TRAMPOLINE'],
+    ['Animal', 'A SLEEPING POLAR BEAR'], ['Animal', 'A HERD OF WILD HORSES'], ['Animal', 'THE GIANT BLUE WHALE'], ['Animal', 'A CURIOUS LITTLE FOX'],
+    ['Holiday', 'MERRY CHRISTMAS AND HAPPY NEW YEAR'], ['Holiday', 'FIREWORKS AT MIDNIGHT'], ['Holiday', 'THE EASTER BUNNY HIDES EGGS'], ['Holiday', 'TRICK OR TREAT'],
+  ];
   const HJUL = [500, 300, 'Fallit', 800, 200, 600, 'Mist tur', 400, 1000, 300, 700, 'Fallit', 250, 900, 350, 600];
   const VOKALER = 'AEIOUYÆØÅ'.split(''), KONS = 'BCDFGHJKLMNPQRSTVWXZ'.split('');
+  const VOK_EN = 'AEIOU'.split(''), KONS_EN = 'BCDFGHJKLMNPQRSTVWXYZ'.split('');
+  const vok = G => G.en ? VOK_EN : VOKALER, kons = G => G.en ? KONS_EN : KONS;
   const PRIS = 250;
   /* 18/11-2026 (Michael): 30 sek. pr. handling (drej / bogstav / løs). Ellers går turen videre, og man mister 2 point. */
   const FRIST = 30000, STRAF = 2;
   const norm = s => String(s || '').toUpperCase().replace(/[^A-ZÆØÅ]/g, '');
   const næste = (H, G) => { const n = G.rk.length; for (let k = 1; k <= n; k++) { const j = (G.tur + k) % n; if ((H.find(G.rk[j]) || {}).online) return j; } return G.tur; };
   function nyGåde(G) {
-    let g; do { g = GÅDER[rnd(GÅDER.length)]; } while (G.brugt.includes(g[1]) && G.brugt.length < GÅDER.length - 1);
+    const L = G.en ? GÅDER_EN : GÅDER;
+    let g; do { g = L[rnd(L.length)]; } while (G.brugt.includes(g[1]) && G.brugt.length < L.length - 1);
     G.brugt.push(g[1]);
     Object.assign(G, { kat: g[0], gåde: g[1], vist: [], fase: 'drej', værdi: 0, penge: {}, slut: null, frist: Date.now() + FRIST });
     G.rk.forEach(e => { G.penge[e] = 0; });
@@ -43,7 +64,7 @@
   BS.registrer({
     id: 'ordhjul', navn: 'Ordhjulet', e: '🎡', min: 2, max: 4,
     d: 'Drej hjulet, gæt bogstaver og løs gåden før de andre.',
-    start(H) { const G = { rk: H.spillere().map(p => p.enhed), tur: 0, brugt: [], spin: { n: 0, i: 0 }, log: '' }; G.tur = rnd(G.rk.length); nyGåde(G); return G; },
+    start(H) { const G = { rk: H.spillere().map(p => p.enhed), tur: 0, brugt: [], spin: { n: 0, i: 0 }, log: '', en: BS.sprog === 'en' }; G.tur = rnd(G.rk.length); nyGåde(G); return G; },
     tickMs: 500,
     tick(H, G) {
       if (G.slut || !G.frist || Date.now() < G.frist) return false;
@@ -68,14 +89,14 @@
         return;
       }
       if (d.k && G.fase === 'kons') {
-        const b = String(d.k).toUpperCase(); if (!KONS.includes(b) || G.vist.includes(b)) return;
+        const b = String(d.k).toUpperCase(); if (!kons(G).includes(b) || G.vist.includes(b)) return;
         G.vist.push(b); const n = [...G.gåde].filter(c => c === b).length;
         if (n) { G.penge[e] += n * G.værdi; G.fase = 'drej'; G.log = navn + ': ' + n + '× ' + b + ' = ' + (n * G.værdi) + ' kr'; }
         else { G.log = navn + ': intet ' + b; G.fase = 'drej'; G.tur = næste(H, G); }
         return;
       }
       if (d.v && G.fase === 'drej') {
-        const b = String(d.v).toUpperCase(); if (!VOKALER.includes(b) || G.vist.includes(b) || G.penge[e] < PRIS) return;
+        const b = String(d.v).toUpperCase(); if (!vok(G).includes(b) || G.vist.includes(b) || G.penge[e] < PRIS) return;
         G.penge[e] -= PRIS; G.vist.push(b); const n = [...G.gåde].filter(c => c === b).length;
         if (n) G.log = navn + ' købte ' + b + ' (' + n + '×)'; else { G.log = navn + ' købte ' + b + ' – men der er intet'; G.tur = næste(H, G); }
         return;
@@ -91,7 +112,7 @@
     skiftEnhed(H, G, gl, ny) { G.rk = G.rk.map(x => x === gl ? ny : x); if (gl in G.penge) { G.penge[ny] = G.penge[gl]; delete G.penge[gl]; } if (G.slut && G.slut.af === gl) G.slut.af = ny; },
     felles: true,
     view(H, G) {
-      return { kat: G.kat, tavle: [...G.gåde].map(c => (c === ' ' || !/[A-ZÆØÅ]/.test(c) || G.vist.includes(c)) ? c : '_'), vist: G.vist, fase: G.fase, værdi: G.værdi,
+      return { kat: G.kat, en: !!G.en, tavle: [...G.gåde].map(c => (c === ' ' || !/[A-ZÆØÅ]/.test(c) || G.vist.includes(c)) ? c : '_'), vist: G.vist, fase: G.fase, værdi: G.værdi,
         tur: G.rk[G.tur], penge: G.penge, rk: G.rk, spin: G.spin, log: G.log, slut: G.slut,
         rest: G.slut ? 0 : Math.max(0, G.frist - Date.now()), tidUd: G.tidUd || 0 };
     },
@@ -118,12 +139,12 @@
         h += '<div class="banner">⏳ ' + esc(api.navn(v.tur)) + 's tur</div>';
       } else if (v.fase === 'kons') {
         h += '<div class="banner min">🎯 ' + v.værdi + ' kr – vælg en konsonant</div><div style="display:grid;grid-template-columns:repeat(7,1fr);gap:6px">'
-          + KONS.map(c => '<button class="btn" data-k="' + c + '" style="padding:10px 0"' + (v.vist.includes(c) ? ' disabled' : '') + '>' + c + '</button>').join('') + '</div>';
+          + kons(v).map(c => '<button class="btn" data-k="' + c + '" style="padding:10px 0"' + (v.vist.includes(c) ? ' disabled' : '') + '>' + c + '</button>').join('') + '</div>';
       } else {
         const råd = (v.penge[api.mig] || 0) >= PRIS;
         h += '<div class="banner min">🎯 Din tur</div><button class="btn big ok" id="oh-drej">🎡 Drej hjulet</button>'
           + '<p class="hint center" style="margin:12px 0 6px">Køb en vokal (' + PRIS + ' kr)' + (råd ? '' : ' – du har ikke råd endnu') + '</p><div style="display:grid;grid-template-columns:repeat(9,1fr);gap:5px">'
-          + VOKALER.map(c => '<button class="btn sec" data-v="' + c + '" style="padding:10px 0"' + (!råd || v.vist.includes(c) ? ' disabled' : '') + '>' + c + '</button>').join('') + '</div>'
+          + vok(v).map(c => '<button class="btn sec" data-v="' + c + '" style="padding:10px 0"' + (!råd || v.vist.includes(c) ? ' disabled' : '') + '>' + c + '</button>').join('') + '</div>'
           + '<div class="row" style="margin-top:12px"><input class="in" id="oh-løs" placeholder="Løs gåden" style="font-size:16px"><button class="btn" id="oh-løsb" style="flex:0 0 28%">Løs</button></div>';
       }
       el.querySelector('#oh-rest').innerHTML = h;
@@ -150,7 +171,7 @@
       c.fillStyle = f === 'Fallit' ? '#111' : f === 'Mist tur' ? '#eee' : FARV[i % FARV.length]; c.fill();
       c.strokeStyle = '#0b1630'; c.lineWidth = 2; c.stroke();
       c.save(); c.rotate(i * a); c.fillStyle = f === 'Mist tur' ? '#111' : '#fff'; c.font = 'bold ' + (typeof f === 'number' ? 18 : 13) + 'px sans-serif';
-      c.textAlign = 'right'; c.textBaseline = 'middle'; c.rotate(-Math.PI / 2); c.fillText(String(f), r - 10, 0); c.restore();
+      c.textAlign = 'right'; c.textBaseline = 'middle'; c.rotate(-Math.PI / 2); c.fillText(typeof f === 'number' ? String(f) : (BS.t ? BS.t(f) : f), r - 10, 0); c.restore();
     }
     c.beginPath(); c.arc(0, 0, 22, 0, Math.PI * 2); c.fillStyle = '#0b1630'; c.fill(); c.restore();
     c.beginPath(); c.moveTo(W / 2 - 12, 2); c.lineTo(W / 2 + 12, 2); c.lineTo(W / 2, 30); c.closePath(); c.fillStyle = '#ffd166'; c.fill();
