@@ -9,7 +9,15 @@
   const jordVed = (J, x) => { const i = Math.max(0, Math.min(NK - 1, Math.round(x / KOL))); return J[i]; };
   function nytTerræn() {
     const p = [Math.random() * 6, Math.random() * 6, Math.random() * 6, Math.random() * 6], J = [];
-    for (let i = 0; i < NK; i++) { const x = i * KOL; J.push(Math.max(190, Math.min(570, 410 + 85 * Math.sin(x * .0055 + p[0]) + 45 * Math.sin(x * .016 + p[1]) + 18 * Math.sin(x * .045 + p[2]) + 6 * Math.sin(x * .13 + p[3])))); }
+    /* 18/11-2026 (Michael): højere klipper – større bjerge, skarpe tinder og stejle kløfter */
+    const tinder = [0, 1, 2].map(() => ({ x: 120 + Math.random() * 760, h: 110 + Math.random() * 130, b: 40 + Math.random() * 50 }));
+    for (let i = 0; i < NK; i++) {
+      const x = i * KOL;
+      let y = 430 + 120 * Math.sin(x * .0058 + p[0]) + 55 * Math.sin(x * .017 + p[1]) + 22 * Math.sin(x * .05 + p[2]) + 8 * Math.sin(x * .14 + p[3]);
+      tinder.forEach(t => { const d = Math.abs(x - t.x) / t.b; if (d < 1) y -= t.h * Math.pow(1 - d, 1.4); });   // spidse klippetoppe
+      J.push(y < 110 ? 110 - (110 - y) * .35 : Math.min(585, y));             // blød top i stedet for flad klippe
+    }
+    for (let i = 0; i < NK; i++) J[i] = Math.max(55, J[i]);
     return J;
   }
   function sænk(G, t) { const ny = jordVed(G.jord, t.x); if (ny > t.y + 1) { const fald = ny - t.y; t.y = ny; if (fald > 24) { const s = Math.round((fald - 24) / 4); t.hp -= s; return s; } } else t.y = ny; return 0; }
@@ -106,13 +114,9 @@
         : '<div class="banner' + (min ? ' min' : '') + '">' + (min ? '🎯 Din tur – træk på banen for at sigte' : '⏳ ' + esc(api.navn(t.e)) + ' sigter') + '</div>';
       const b = el.querySelector('#kd-ban'); if (b._h !== ban) { b._h = ban; b.innerHTML = ban; }
       const ur = el.querySelector('#kd-ur'); if (!v.slut && !v.låst) { if (ur._f !== v.tur + ':' + (v.skud ? v.skud.n : 0) + ':' + v.sprang) { ur._f = v.tur + ':' + (v.skud ? v.skud.n : 0) + ':' + v.sprang; BS.turUr(ur, v.rest, FRIST); } } else if (ur._f !== '') { BS.turUr(document.createElement('div'), 0); ur.innerHTML = ''; ur._f = ''; }   // stop uret mens der skydes
-      const kb = 'style="padding:10px 0;min-width:0;font-size:18px"';
-      const st = min ? '<div style="display:grid;grid-template-columns:auto 1fr 1fr auto 1fr 1fr;gap:6px;align-items:center;margin-top:8px">'
-        + '<span class="hint" style="font-weight:800">Vinkel</span><button class="btn sec" ' + kb + ' data-j="v:2">◀</button><button class="btn sec" ' + kb + ' data-j="v:-2">▶</button>'
-        + '<span class="hint" style="font-weight:800;margin-left:6px">Kraft</span><button class="btn sec" ' + kb + ' data-j="k:-2">−</button><button class="btn sec" ' + kb + ' data-j="k:2">+</button></div>'
-        + '<p class="hint center" style="margin:4px 0" id="kd-tal"></p>'
-        + '<div class="row" style="flex-wrap:wrap;gap:6px">' + Object.entries(VÅBEN).map(([k, w]) => { const n = k === 'std' ? '∞' : t.våben[k]; return '<button class="btn ' + (t.valg === k ? '' : 'sec') + '" data-våben="' + k + '"' + (n === 0 ? ' disabled' : '') + ' style="flex:1;font-size:14px">' + ({ std: '💣', stor: '💥', tre: '🎆' })[k] + ' ' + w.navn + ' (' + n + ')</button>'; }).join('') + '</div>'
-        + '<button class="btn big" id="kd-fyr" style="margin-top:10px;background:linear-gradient(135deg,#ef476f,#ff8c42);font-size:22px">🔥 FYR!</button>' : '';
+      const st = min ? '<p class="hint center" style="margin:8px 0 4px;font-size:15px">🪃 <b>Træk baglæns</b> på banen som en slangebøsse – <b>slip</b> for at skyde</p>'
+        + '<p class="hint center" style="margin:0 0 8px" id="kd-tal"></p>'
+        + '<div class="row" style="flex-wrap:wrap;gap:6px">' + Object.entries(VÅBEN).map(([k, w]) => { const n = k === 'std' ? '∞' : t.våben[k]; return '<button class="btn ' + (t.valg === k ? '' : 'sec') + '" data-våben="' + k + '"' + (n === 0 ? ' disabled' : '') + ' style="flex:1;font-size:14px">' + ({ std: '💣', stor: '💥', tre: '🎆' })[k] + ' ' + w.navn + ' (' + n + ')</button>'; }).join('') + '</div>' : '';
       const sk = el.querySelector('#kd-styr'), sig = st + (min ? t.valg : '');
       if (sk._h !== sig) {
         sk._h = sig; sk.innerHTML = st;
@@ -125,22 +129,45 @@
     },
   });
 
-  /* ---------- sigte: træk på banen (retning = vinkel, afstand = kraft) ---------- */
+  /* ---------- sigte som i en slangebøsse (18/11-2026, Michael: «som Angry Birds») ----------
+     Sæt fingeren hvor som helst og TRÆK BAGUD: kanonen skyder den modsatte vej af trækket, og jo længere
+     du trækker, jo hårdere. Mens du trækker, vises den første del af banen som prikker. SLIP = skud.
+     Trækker du helt tilbage til startpunktet (under 25 px), annulleres skuddet. */
+  const TRÆK_PR_KRAFT = 2.6;
   function sigteStyring(el, cv, api) {
-    let aktiv = false, sidst = 0;
+    let aktiv = null, sidst = 0;
+    const pkt = e => { const r = cv.getBoundingClientRect(); return [(e.clientX - r.left) / r.width * VW, (e.clientY - r.top) / r.height * VH, e.clientX, e.clientY]; };
     const opd = e => {
-      const v = el._v, t = v && v.tanks[v.tur]; if (!t) return;
-      const r = cv.getBoundingClientRect(), x = (e.clientX - r.left) / r.width * VW, y = (e.clientY - r.top) / r.height * VH;
-      let a = Math.atan2(t.y - 24 - y, x - t.x) * 180 / Math.PI; if (a < 0) a = a < -90 ? 180 : 0;
-      const k = Math.max(5, Math.min(100, Math.hypot(x - t.x, y - t.y + 24) / 3.6));
-      el._sigte = [Math.round(a), Math.round(k)];
+      const [, , cx, cy] = pkt(e), r = cv.getBoundingClientRect(), skala = VW / r.width;
+      const dx = (aktiv.sx - cx) * skala, dy = (aktiv.sy - cy) * skala, L = Math.hypot(dx, dy);
+      aktiv.L = L;
+      if (L < 25) { el._træk = null; return; }
+      let a = Math.atan2(-dy, dx) * 180 / Math.PI; if (a < 0) a = a < -90 ? 180 : 0;
+      const k = Math.max(5, Math.min(100, L / TRÆK_PR_KRAFT));
+      el._sigte = [Math.round(a), Math.round(k)]; el._træk = { L: Math.min(L, 100 * TRÆK_PR_KRAFT) };
       const nu = Date.now(); if (nu - sidst > 90) { sidst = nu; api.kald({ sigt: el._sigte.slice() }); }
     };
     const kan = () => { const v = el._v; return v && !v.slut && !v.låst && v.tanks[v.tur].e === api.mig; };
-    cv.addEventListener('pointerdown', e => { if (!kan()) return; aktiv = true; el._sigter = true; try { cv.setPointerCapture(e.pointerId); } catch (x) {} opd(e); });
+    cv.addEventListener('pointerdown', e => { if (!kan()) return; e.preventDefault(); aktiv = { sx: e.clientX, sy: e.clientY, L: 0 }; el._sigter = true; try { cv.setPointerCapture(e.pointerId); } catch (x) {} });
     cv.addEventListener('pointermove', e => { if (aktiv) opd(e); });
-    const slip = () => { if (!aktiv) return; aktiv = false; el._sigter = false; api.kald({ sigt: el._sigte.slice() }); };
-    cv.addEventListener('pointerup', slip); cv.addEventListener('pointercancel', slip);
+    const slip = () => {
+      if (!aktiv) return; const L = aktiv.L; aktiv = null; el._sigter = false; el._træk = null;
+      if (L >= 25 && kan()) { api.kald({ sigt: el._sigte.slice(), fyr: 1 }); api.vib([30, 30, 60]); }
+      else api.kald({ sigt: el._sigte.slice() });
+    };
+    cv.addEventListener('pointerup', slip); cv.addEventListener('pointercancel', () => { aktiv = null; el._sigter = false; el._træk = null; });
+  }
+  /* forudsigelse af banen (samme fysik som værten) – kun den første del, så vinden stadig kræver fingerspidsfølelse */
+  function forudsig(v, t, ang, kr) {
+    const a = ang * Math.PI / 180, vv = kr * FART;
+    let x = t.x + Math.cos(a) * 38, y = t.y - 24 - Math.sin(a) * 38, vx = Math.cos(a) * vv, vy = -Math.sin(a) * vv;
+    const pts = [];
+    for (let s = 0; s < 70; s++) {
+      vx += v.vind * DT; vy += TYNGDE * DT; x += vx * DT; y += vy * DT;
+      if (s % 5 === 0) pts.push([x, y]);
+      if (x < 0 || x > VW || y > VH || (y >= jordVed(v.jord, x))) break;
+    }
+    return pts;
   }
 
   /* ---------- grafik ---------- */
@@ -213,10 +240,18 @@
     const tt = v.tanks[v.tur];
     if (!v.slut && !v.låst && !A && tt.hp > 0) {
       const [ang, kr] = tt.e === api.mig && el._sigte ? el._sigte : [tt.vinkel, tt.kraft];
-      const a = ang * Math.PI / 180, x0 = tt.x + Math.cos(a) * 40, y0 = tt.y - 24 - Math.sin(a) * 40, L = 30 + kr * 1.6;
-      c.setLineDash([8, 8]); c.lineDashOffset = -nu / 30; c.strokeStyle = 'rgba(255,255,255,.75)'; c.lineWidth = 3; c.beginPath(); c.moveTo(x0, y0); c.lineTo(x0 + Math.cos(a) * L, y0 - Math.sin(a) * L); c.stroke(); c.setLineDash([]);
-      c.fillStyle = '#fff'; c.font = 'bold 18px sans-serif'; c.textAlign = 'center'; c.fillText(ang + '° · ' + kr, x0 + Math.cos(a) * (L + 22), y0 - Math.sin(a) * (L + 22));
-      const tal = el.querySelector('#kd-tal'); if (tal && tt.e === api.mig) tal.textContent = 'Vinkel ' + ang + '° · Kraft ' + kr;
+      const a = ang * Math.PI / 180, bx = tt.x, by = tt.y - 24;
+      /* slangebøssens elastik: fra kanonen og bagud, længere jo hårdere */
+      const elast = 18 + kr * .9, ex = bx - Math.cos(a) * elast, ey = by + Math.sin(a) * elast;
+      c.strokeStyle = 'rgba(120,70,40,.9)'; c.lineWidth = 6; c.lineCap = 'round';
+      c.beginPath(); c.moveTo(bx - 10, by - 4); c.lineTo(ex, ey); c.lineTo(bx + 10, by - 4); c.stroke();
+      c.fillStyle = '#3a2416'; c.beginPath(); c.arc(ex, ey, 7, 0, 7); c.fill();
+      /* prikket bane */
+      const pts = forudsig(v, tt, ang, kr);
+      pts.forEach(([x, y], k) => { c.fillStyle = 'rgba(255,255,255,' + (0.95 - k / pts.length * .7) + ')'; c.beginPath(); c.arc(x, y, Math.max(2.5, 6 - k * .3), 0, 7); c.fill(); });
+      c.fillStyle = '#fff'; c.font = 'bold 20px sans-serif'; c.textAlign = 'center'; c.lineWidth = 4; c.strokeStyle = 'rgba(0,0,0,.6)';
+      const lx = ex, ly = ey + 26; c.strokeText(ang + '° · ' + kr + '%', lx, ly); c.fillText(ang + '° · ' + kr + '%', lx, ly);
+      const tal = el.querySelector('#kd-tal'); if (tal && tt.e === api.mig) tal.textContent = 'Vinkel ' + ang + '° · Kraft ' + kr + '%';
     }
     /* granater med lysende hale */
     spor.forEach(s => { s.forEach(([x, y], k) => { c.fillStyle = 'rgba(255,200,120,' + (k / s.length * .6) + ')'; c.beginPath(); c.arc(x, y, 2 + k / s.length * 4, 0, 7); c.fill(); }); });
