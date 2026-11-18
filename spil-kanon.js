@@ -13,9 +13,40 @@
     normal: { navn: 'Normal', vind: 40, frist: 45000, forud: 70, tinde: 1, fly: 1 / 45 },
     svær: { navn: 'Svær', vind: 70, frist: 30000, forud: 0, tinde: 1.35, fly: 1 / 70 },
   };
-  const VÅBEN = { std: { navn: 'Granat', r: 34, dmg: 42 }, stor: { navn: 'Storbombe', r: 64, dmg: 58, antal: 2 }, tre: { navn: 'Trippelskud', r: 26, dmg: 26, antal: 2 },
-    jord: { navn: 'Jorddrop', r: 72, dmg: 0 } };          // jorddrop: lægger en jordbunke – får man ved at skyde flyet ned
-  const IKON = { std: '💣', stor: '💥', tre: '🎆', jord: '🟫' };
+  /* 18/11-2026 (Michael: «flere typer bomber»): Hoppebombe preller én gang af jorden, Klyngebombe deler sig i 5 på toppen
+     af buen, Borebombe borer sig ned og laver et dybt krater (god mod begravede). Megabombe og Jorddrop fås kun fra flyets kasser. */
+  const VÅBEN = { std: { navn: 'Granat', r: 34, dmg: 42 }, stor: { navn: 'Storbombe', r: 64, dmg: 58 }, tre: { navn: 'Trippelskud', r: 26, dmg: 26 },
+    hop: { navn: 'Hoppebombe', r: 40, dmg: 46 }, klynge: { navn: 'Klyngebombe', r: 26, dmg: 24 }, bor: { navn: 'Borebombe', r: 38, dmg: 54 },
+    mega: { navn: 'Megabombe', r: 105, dmg: 75 }, jord: { navn: 'Jorddrop', r: 72, dmg: 0 } };   // jorddrop: lægger en jordbunke
+  const IKON = { std: '💣', stor: '💥', tre: '🎆', hop: '🏀', klynge: '🎇', bor: '🔩', mega: '☢️', jord: '🟫' };
+  const START_VÅBEN = () => ({ stor: 2, tre: 2, hop: 2, klynge: 1, bor: 1, mega: 0, jord: TEST ? 2 : 0 });
+  /* 18/11-2026 (Michael: «flere typer airdrops»): flyet har en tilfældig kasse med – den ses på kassen under flyet */
+  const KASSER = { jord: { ikon: '🟫', navn: 'jorddrop', farve: '#a8743d' }, skjold: { ikon: '🛡️', navn: 'skjold', farve: '#4cc9f0' },
+    rep: { ikon: '❤️', navn: '+30 liv', farve: '#ef476f' }, mega: { ikon: '☢️', navn: 'megabombe', farve: '#ffd166' }, klynge: { ikon: '🎇', navn: 'klyngebombe', farve: '#8338ec' } };
+  const KASSE_VÆGT = [['jord', 3], ['skjold', 2], ['rep', 2], ['klynge', 2], ['mega', 1]];
+  const tilfKasse = () => { let r = Math.random() * KASSE_VÆGT.reduce((s, k) => s + k[1], 0); for (const [k, w] of KASSE_VÆGT) { r -= w; if (r <= 0) return k; } return 'jord'; };
+  function åbnKasse(H, t, k) {
+    if (k === 'jord') t.våben.jord = Math.min(3, (t.våben.jord || 0) + 1);
+    if (k === 'skjold') t.skjold = 40;
+    if (k === 'rep') t.hp = Math.min(100, t.hp + 30);
+    if (k === 'mega') t.våben.mega = Math.min(2, (t.våben.mega || 0) + 1);
+    if (k === 'klynge') t.våben.klynge = Math.min(3, (t.våben.klynge || 0) + 1);
+  }
+  const skjoldTag = (o, s) => { if (o.skjold > 0) { const a = Math.min(o.skjold, s); o.skjold -= a; s -= a; } return s; };
+  /* layout: stående = som før (banner, bane, ur, styring under hinanden); liggende = bane til venstre, resten i en kolonne */
+  const KD_CSS = '.kd-lay{display:grid;grid-template-areas:"ban" "bane" "ur" "styr";gap:0}'
+    + '#kd-ban{grid-area:ban}.kd-bane{grid-area:bane}#kd-ur{grid-area:ur;margin-top:8px}#kd-styr{grid-area:styr}'
+    + '#kd-cv{display:block;width:100%;border-radius:16px;touch-action:none}'
+    + '.kd-våben{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:6px}.kd-våben .btn{font-size:14px;padding:10px 8px}'
+    + '@media (orientation:landscape) and (max-height:600px),(min-width:900px) and (orientation:landscape){'
+    + '#app:has(.kd-lay){max-width:none;padding-top:calc(4px + env(safe-area-inset-top));padding-left:calc(10px + env(safe-area-inset-left));padding-right:calc(10px + env(safe-area-inset-right))}'
+    + '#app:has(.kd-lay) .top{margin-bottom:4px}#app:has(.kd-lay) .top .btn{padding:7px 12px}'
+    + '.kd-lay{grid-template-columns:minmax(0,1fr) 250px;grid-template-areas:"bane ban" "bane ur" "bane styr";column-gap:12px;align-content:start}'
+    + '#kd-cv{width:auto;height:auto;max-width:100%;max-height:calc(100vh - 64px - env(safe-area-inset-top) - env(safe-area-inset-bottom));margin:0 auto}'
+    + '#kd-ban .banner{font-size:15px;padding:8px;margin:0 0 6px}#kd-ur{margin-top:0}'
+    + '#kd-styr .hint{font-size:12px!important}.kd-våben{grid-template-columns:1fr 1fr}.kd-våben .btn{font-size:12.5px;padding:8px 4px}'
+    + '.kd-drej{display:none}}'
+    + '@media (orientation:landscape){.kd-drej{display:none}}';
   const TEST = false;   // kun til udvikling: true giver 2 jorddrop fra start og fly med det samme
   /* en kanon er begravet, når der ligger jord oven over den – så kan den kun grave sig fri */
   const begravet = (J, t) => t.hp > 0 && [-10, 0, 10].some(dx => jordVed(J, t.x + dx) < t.y - 30);
@@ -34,30 +65,47 @@
     return J;
   }
   /* kanonen falder, hvis jorden under den forsvinder – men løftes ikke op, når der kommer jord ovenpå (så er den begravet) */
-  function sænk(G, t) { const ny = jordVed(G.jord, t.x); if (ny > t.y + 1) { const fald = ny - t.y; t.y = ny; if (fald > 24) { const s = Math.round((fald - 24) / 4); t.hp -= s; return s; } } return 0; }
+  function sænk(G, t) { const ny = jordVed(G.jord, t.x); if (ny > t.y + 1) { const fald = ny - t.y; t.y = ny; if (fald > 24) { const s = skjoldTag(t, Math.round((fald - 24) / 4)); t.hp -= s; return s; } } return 0; }
   const flyX = (f, T) => f.x0 + f.vx * (T - f.t0) / 1000;
   function næste(G) { const n = G.tanks.length; for (let k = 1; k <= n; k++) { const j = (G.tur + k) % n; if (G.tanks[j].hp > 0 && !G.tanks[j].ude) return j; } return G.tur; }
 
+  /* én projektil-bane. art: 'bombe' | 'jord' | 'hop' (preller én gang) | 'klynge' (stopper på toppen og deler sig) | 'bor' (borer ned) */
+  function flyv(H, G, t, x, y, vx, vy, art, s0, tf) {
+    const pts = [[Math.round(x), Math.round(y)]]; let ramt = null, type = art === 'jord' ? 'jord' : 'bombe', hop = 0;
+    for (let s = s0; s < 3000; s++) {
+      const vyFør = vy;
+      vx += G.vind * DT; vy += TYNGDE * DT; x += vx * DT; y += vy * DT;
+      if (s % 2 === 0) pts.push([Math.round(x), Math.round(y)]);
+      if (x < -40 || x > VW + 40 || y > VH + 40) break;
+      if (art === 'klynge' && vyFør < 0 && vy >= 0) return { pts, ramt: null, type: 'del', x, y, vx, vy, s };
+      /* flyet: rammer man det, falder det ned, og man får kassens indhold */
+      if (G.fly) { const fx = flyX(G.fly, tf + s * DT * 1000); if (fx > 10 && fx < VW - 10 && Math.hypot(fx - x, G.fly.y - y) < 34) {
+        ramt = [x, y]; type = 'fly'; const k = G.fly.kasse || 'jord'; G.fly = null; åbnKasse(H, t, k);
+        G.flyNed = { af: t.e, n: (G.flyNed ? G.flyNed.n : 0) + 1, kasse: k }; H.giv(t.e, 1); break; } }
+      if (x >= 0 && x <= VW && y >= jordVed(G.jord, x)) {
+        if (art === 'klynge') return { pts, ramt: null, type: 'del', x, y: jordVed(G.jord, x) - 6, vx: vx * .3, vy: -170, s };   // rammer før toppen: deler sig ved nedslaget
+        if (art === 'hop' && hop === 0) { hop = 1; y = jordVed(G.jord, x) - 2; vy = -Math.abs(vy) * .55; vx *= .8; continue; }
+        ramt = [x, jordVed(G.jord, x) + (art === 'bor' ? 70 : 0)]; if (art === 'bor') type = 'bor'; break;
+      }
+      const tank = G.tanks.find(o => o.hp > 0 && Math.hypot(o.x - x, o.y - 14 - y) < 24 && (o !== t || s > 25));
+      if (tank) { if (art === 'klynge') return { pts, ramt: null, type: 'del', x, y: y - 6, vx: vx * .3, vy: -170, s }; ramt = [x, y]; break; }
+    }
+    pts.push([Math.round(x), Math.round(y)]);
+    return { pts, ramt, type };
+  }
   function skyd(H, G, t) {
-    const w = VÅBEN[t.våbenValg] || VÅBEN.std;
-    const vinkler = t.våbenValg === 'tre' ? [t.vinkel - 6, t.vinkel, t.vinkel + 6] : [t.vinkel];
+    const valg = t.våbenValg, w = VÅBEN[valg] || VÅBEN.std;
+    const vinkler = valg === 'tre' ? [t.vinkel - 6, t.vinkel, t.vinkel + 6] : [t.vinkel];
+    const art = valg === 'jord' ? 'jord' : valg === 'hop' ? 'hop' : valg === 'klynge' ? 'klynge' : valg === 'bor' ? 'bor' : 'bombe';
     const baner = [], eks = [], tf = Date.now();
+    const læg = (b, r, dmg) => { baner.push(b.pts); eks.push(b.ramt ? { x: Math.round(b.ramt[0]), y: Math.round(b.ramt[1]), r: b.type === 'fly' ? 30 : r, dmg, type: b.type } : null); };
     vinkler.forEach(vg => {
       const a = vg * Math.PI / 180, v = t.kraft * FART;
-      let x = t.x + Math.cos(a) * 38, y = t.y - 24 - Math.sin(a) * 38, vx = Math.cos(a) * v, vy = -Math.sin(a) * v;
-      const pts = [[Math.round(x), Math.round(y)]]; let ramt = null, type = t.våbenValg === 'jord' ? 'jord' : 'bombe';
-      for (let s = 0; s < 3000; s++) {
-        vx += G.vind * DT; vy += TYNGDE * DT; x += vx * DT; y += vy * DT;
-        if (s % 2 === 0) pts.push([Math.round(x), Math.round(y)]);
-        if (x < -40 || x > VW + 40 || y > VH + 40) break;
-        /* flyet: rammer man det, falder det ned, og man får et jorddrop */
-        if (G.fly) { const fx = flyX(G.fly, tf + s * DT * 1000); if (fx > 10 && fx < VW - 10 && Math.hypot(fx - x, G.fly.y - y) < 34) { ramt = [x, y]; type = 'fly'; G.fly = null; t.våben.jord = Math.min(3, (t.våben.jord || 0) + 1); G.flyNed = { af: t.e, n: (G.flyNed ? G.flyNed.n : 0) + 1 }; H.giv(t.e, 1); break; } }
-        if (x >= 0 && x <= VW && y >= jordVed(G.jord, x)) { ramt = [x, jordVed(G.jord, x)]; break; }
-        const tank = G.tanks.find(o => o.hp > 0 && Math.hypot(o.x - x, o.y - 14 - y) < 24 && (o !== t || s > 25));
-        if (tank) { ramt = [x, y]; break; }
-      }
-      pts.push([Math.round(x), Math.round(y)]);
-      baner.push(pts); eks.push(ramt ? { x: Math.round(ramt[0]), y: Math.round(ramt[1]), r: type === 'fly' ? 30 : w.r, type } : null);   // én plads pr. granat
+      const b = flyv(H, G, t, t.x + Math.cos(a) * 38, t.y - 24 - Math.sin(a) * 38, Math.cos(a) * v, -Math.sin(a) * v, art, 0, tf);
+      if (b.type === 'del') {
+        /* klyngebomben deler sig i 5 – hver lille bombe får hovedbanen foran sig, så animationen starter dem på toppen */
+        [-2, -1, 0, 1, 2].forEach(k => { const c = flyv(H, G, t, b.x, b.y, b.vx + k * 48, b.vy - 30, 'bombe', b.s, tf); læg({ pts: b.pts.concat(c.pts), ramt: c.ramt, type: c.type }, w.r, w.dmg); });
+      } else læg(b, w.r, w.dmg);
     });
     /* sprængninger: kratere + skade – eller en jordbunke ved jorddrop */
     const skade = {};
@@ -69,7 +117,7 @@
       }
       if (e.type === 'fly') return;
       for (let i = 0; i < NK; i++) { const dx = i * KOL - e.x; if (Math.abs(dx) < e.r) { const bund = e.y + Math.sqrt(e.r * e.r - dx * dx); if (bund > G.jord[i]) G.jord[i] = Math.min(VH - 4, bund); } }
-      G.tanks.forEach(o => { if (o.hp <= 0) return; const d = Math.hypot(o.x - e.x, o.y - 10 - e.y); if (d < e.r + 14) { const s = Math.round(w.dmg * (1 - d / (e.r + 14)) + 4); o.hp -= s; skade[o.e] = (skade[o.e] || 0) + s; } });
+      G.tanks.forEach(o => { if (o.hp <= 0) return; const d = Math.hypot(o.x - e.x, o.y - 10 - e.y); if (d < e.r + 14) { const s = skjoldTag(o, Math.round(e.dmg * (1 - d / (e.r + 14)) + 4)); o.hp -= s; skade[o.e] = (skade[o.e] || 0) + s; } });
     });
     G.tanks.forEach(o => { if (o.hp > 0) { const s = sænk(G, o); if (s) skade[o.e] = (skade[o.e] || 0) + s; } });
     const døde = [];
@@ -95,7 +143,7 @@
     start(H, opt) {
       const niv = NIV[opt && opt.niveau] ? opt.niveau : 'normal', N = NIV[niv];
       const ps = H.spillere(), J = nytTerræn(N.tinde), n = ps.length;
-      const tanks = ps.map((p, i) => { const x = Math.round((i + .5) * VW / n + (Math.random() - .5) * 60); return { e: p.enhed, x, y: jordVed(J, x), hp: 100, vinkel: x < VW / 2 ? 50 : 130, kraft: 55, våben: { stor: 2, tre: 2, jord: TEST ? 2 : 0 }, våbenValg: 'std' }; });
+      const tanks = ps.map((p, i) => { const x = Math.round((i + .5) * VW / n + (Math.random() - .5) * 60); return { e: p.enhed, x, y: jordVed(J, x), hp: 100, skjold: 0, vinkel: x < VW / 2 ? 50 : 130, kraft: 55, våben: START_VÅBEN(), våbenValg: 'std' }; });
       tanks.forEach(t => { const i = Math.round(t.x / KOL); for (let k = -5; k <= 5; k++) if (J[i + k] != null) J[i + k] = t.y; });   // en lille flad plads til hver kanon
       const G = { niv, jord: J, tanks, tur: rnd(n), vind: 0, skud: null, lås: 0, frist: Date.now() + N.frist, fly: null, flyNed: null, slut: null };
       G.vind = nyVind(G); return G;
@@ -105,7 +153,7 @@
       const N = NIV[G.niv], nu = Date.now(); let æ = false;
       /* flyet: kommer sjældent og tilfældigt, flyver tværs over himlen */
       if (G.fly && (flyX(G.fly, nu) < -90 || flyX(G.fly, nu) > VW + 90)) { G.fly = null; æ = true; }
-      if (!G.fly && !G.lås && Math.random() < (TEST ? 1 : N.fly / 4)) { const d = Math.random() < .5 ? 1 : -1; G.fly = { x0: d > 0 ? -70 : VW + 70, y: 70 + rnd(70), vx: d * (60 + rnd(30)), t0: nu }; æ = true; }
+      if (!G.fly && !G.lås && Math.random() < (TEST ? 1 : N.fly / 4)) { const d = Math.random() < .5 ? 1 : -1; G.fly = { x0: d > 0 ? -70 : VW + 70, y: 70 + rnd(70), vx: d * (60 + rnd(30)), t0: nu, kasse: tilfKasse() }; æ = true; }
       if (G.lås && nu > G.lås) {
         G.lås = 0;
         const levende = G.tanks.filter(t => t.hp > 0);
@@ -127,13 +175,16 @@
     felles: true,
     view(H, G) {
       const N = NIV[G.niv], nu = Date.now();
-      return { jord: G.jord.map(Math.round), tanks: G.tanks.map(t => ({ e: t.e, x: t.x, y: Math.round(t.y), hp: t.hp, vinkel: t.vinkel, kraft: t.kraft, våben: t.våben, valg: t.våbenValg, begravet: begravet(G.jord, t) })),
+      return { jord: G.jord.map(Math.round), tanks: G.tanks.map(t => ({ e: t.e, x: t.x, y: Math.round(t.y), hp: t.hp, skjold: t.skjold || 0, vinkel: t.vinkel, kraft: t.kraft, våben: t.våben, valg: t.våbenValg, begravet: begravet(G.jord, t) })),
         tur: G.tur, vind: G.vind, skud: G.skud, låst: !!G.lås, rest: G.lås ? N.frist : Math.max(0, G.frist - nu), frist: N.frist, forud: N.forud, niv: N.navn,
-        fly: G.fly ? { x: Math.round(flyX(G.fly, nu)), y: G.fly.y, vx: G.fly.vx } : null, flyNed: G.flyNed, sprang: G.sprang || 0, slut: G.slut };
+        fly: G.fly ? { x: Math.round(flyX(G.fly, nu)), y: G.fly.y, vx: G.fly.vx, kasse: G.fly.kasse } : null, flyNed: G.flyNed, sprang: G.sprang || 0, slut: G.slut };
     },
     tegn(el, v, api) {
       if (!el.querySelector('#kd-cv')) {
-        el.innerHTML = '<div id="kd-ban"></div><canvas id="kd-cv" width="1000" height="620" style="width:100%;display:block;border-radius:16px;touch-action:none"></canvas><div id="kd-ur"></div><div id="kd-styr"></div>';
+        /* 18/11-2026 (Michael: «vil passe bedre i landscape»): liggende telefon = banen fylder skærmen, styring i en kolonne til højre */
+        if (!document.getElementById('kd-css')) { const s = document.createElement('style'); s.id = 'kd-css'; s.textContent = KD_CSS; document.head.appendChild(s); }
+        el.innerHTML = '<div class="kd-lay"><div id="kd-ban"></div><div class="kd-bane"><canvas id="kd-cv" width="1000" height="620"></canvas></div><div id="kd-ur"></div><div id="kd-styr"></div></div>'
+          + '<p class="hint center kd-drej">📱↻ Drej telefonen for en større bane</p>';
         el._fx = { partikler: [], ryst: 0 }; el._vis = null;
         const cv = el.querySelector('#kd-cv');
         sigteStyring(el, cv, api);
@@ -154,20 +205,20 @@
         : '<div class="banner' + (min ? ' min' : '') + '">' + (min ? (t.begravet ? '⛏️ Du er begravet – grav dig fri!' : '🎯 Din tur – træk på banen for at sigte') : '⏳ ' + esc(api.navn(t.e)) + (t.begravet ? ' graver' : ' sigter')) + '</div>';
       const b = el.querySelector('#kd-ban'); if (b._h !== ban) { b._h = ban; b.innerHTML = ban; }
       const ur = el.querySelector('#kd-ur'); if (!v.slut && !v.låst) { if (ur._f !== v.tur + ':' + (v.skud ? v.skud.n : 0) + ':' + v.sprang) { ur._f = v.tur + ':' + (v.skud ? v.skud.n : 0) + ':' + v.sprang; BS.turUr(ur, v.rest, v.frist); } } else if (ur._f !== '') { BS.turUr(document.createElement('div'), 0); ur.innerHTML = ''; ur._f = ''; }   // stop uret mens der skydes
-      const st = !min ? '<p class="hint center" style="margin:6px 0">Niveau: ' + esc(v.niv) + ' · ✈️ skyd flyet ned for at få et jorddrop 🟫</p>'
+      const st = !min ? '<p class="hint center" style="margin:6px 0">Niveau: ' + esc(v.niv) + ' · ✈️ skyd flyet ned og få kassen 📦</p>'
         : t.begravet ? '<p class="hint center" style="margin:8px 0">Der ligger jord oven på din kanon. Grav dig fri – tykke bunker kan kræve flere ture.</p><button class="btn big" id="kd-grav" style="background:linear-gradient(135deg,#8a5a2b,#c08a4a)">⛏️ Grav dig fri</button>'
         : '<p class="hint center" style="margin:8px 0 4px;font-size:15px">🪃 <b>Træk baglæns</b> på banen som en slangebøsse – <b>slip</b> for at skyde</p>'
         + '<p class="hint center" style="margin:0 0 8px" id="kd-tal"></p>'
-        + '<div class="row" style="flex-wrap:wrap;gap:6px">' + Object.entries(VÅBEN).filter(([k]) => k !== 'jord' || t.våben.jord > 0).map(([k, w]) => { const n = k === 'std' ? '∞' : t.våben[k]; return '<button class="btn ' + (t.valg === k ? '' : 'sec') + '" data-våben="' + k + '"' + (n === 0 ? ' disabled' : '') + ' style="flex:1;font-size:14px">' + IKON[k] + ' ' + w.navn + ' (' + n + ')</button>'; }).join('') + '</div>'
-        + (t.våben.jord ? '' : '<p class="hint center" style="margin:6px 0 0">✈️ Skyd flyet ned, når det kommer, for at få et 🟫 jorddrop</p>');
+        + '<div class="kd-våben">' + Object.entries(VÅBEN).filter(([k]) => k === 'std' || (t.våben[k] || 0) > 0 || ['stor', 'tre', 'hop', 'klynge', 'bor'].includes(k)).map(([k, w]) => { const n = k === 'std' ? '∞' : (t.våben[k] || 0); return '<button class="btn ' + (t.valg === k ? '' : 'sec') + '" data-våben="' + k + '"' + (n === 0 ? ' disabled' : '') + '>' + IKON[k] + ' ' + w.navn + ' (' + n + ')</button>'; }).join('') + '</div>'
+        + '<p class="hint center" style="margin:6px 0 0">✈️ Skyd flyet ned og få kassen: 🟫 jord · 🛡️ skjold · ❤️ liv · 🎇 klynge · ☢️ mega</p>';
       const sk = el.querySelector('#kd-styr'), sig = st + (min ? t.valg : '');
       if (sk._h !== sig) {
         sk._h = sig; sk.innerHTML = st;
         sk.querySelectorAll('[data-våben]').forEach(x => { x.onclick = () => api.kald({ våben: x.dataset.våben }); });
         const g = sk.querySelector('#kd-grav'); if (g) g.onclick = () => { g.disabled = true; api.kald({ grav: 1 }); api.vib(40); };
       }
-      if (v.flyNed && el._flyNed !== v.flyNed.n) { if (el._flyNed != null) api.toast('✈️ ' + api.navn(v.flyNed.af) + ' skød flyet ned og fik et jorddrop 🟫'); el._flyNed = v.flyNed.n; }
-      if (v.fly) el._fly = { x: v.fly.x, y: v.fly.y, vx: v.fly.vx, t: performance.now() }; else if (!el._anim) el._fly = null;
+      if (v.flyNed && el._flyNed !== v.flyNed.n) { if (el._flyNed != null) { const k = KASSER[v.flyNed.kasse] || KASSER.jord; api.toast('✈️ ' + api.navn(v.flyNed.af) + ' skød flyet ned: ' + k.navn + ' ' + k.ikon); } el._flyNed = v.flyNed.n; }
+      if (v.fly) el._fly = { x: v.fly.x, y: v.fly.y, vx: v.fly.vx, kasse: v.fly.kasse, t: performance.now() }; else if (!el._anim) el._fly = null;
       if (v.slut && el._slut !== 1) { el._slut = 1; v.slut.vinder === api.mig ? api.lyd.vind() : api.lyd.fejl(); }
       if (min && el._minT !== v.tur + ':' + (v.skud ? v.skud.n : 0)) { el._minT = v.tur + ':' + (v.skud ? v.skud.n : 0); api.vib(40); }
     },
@@ -280,7 +331,7 @@
     /* blinkende stjerner */
     for (let i = 0; i < 12; i++) { const a = .5 + .5 * Math.sin(nu / 400 + i * 2.1); c.fillStyle = 'rgba(255,255,255,' + a + ')'; c.fillRect((i * 83 + 40) % VW, (i * 47 + 20) % 220, 2, 2); }
     /* flyet med jorddrop-kassen */
-    if (el._fly) { const f = el._fly; tegnFly(c, f.x + f.vx * (nu - f.t) / 1000, f.y, Math.sign(f.vx), nu); }
+    if (el._fly) { const f = el._fly; tegnFly(c, f.x + f.vx * (nu - f.t) / 1000, f.y, Math.sign(f.vx), nu, f.kasse); }
     /* begravede kanoner tegnes FØR jorden, så jorden ligger oven på dem */
     const tegnT = (t, i) => { const live = v.tanks[i] || t, vink = (i === v.tur && live.e === api.mig && el._sigte) ? el._sigte[0] : live.vinkel; tegnKanon(c, t, api.farve(t.e), t.hp > 0 ? vink : null, i === v.tur && !v.slut, api.navn(t.e), nu); };
     V.tanks.forEach((t, i) => { if (t.begravet) tegnT(t, i); });
@@ -347,6 +398,8 @@
     const x = t.x, y = t.y;
     if (t.hp <= 0) { c.fillStyle = '#2b2b33'; rund(c, x - 18, y - 10, 36, 10, 4); c.fill(); c.fillStyle = 'rgba(80,80,90,.5)'; c.beginPath(); c.arc(x + Math.sin(nu / 300) * 3, y - 24 - (nu / 40 % 20), 8, 0, 7); c.fill(); return; }
     if (aktiv) { const g = c.createRadialGradient(x, y - 10, 5, x, y - 10, 46); g.addColorStop(0, 'rgba(255,209,102,.45)'); g.addColorStop(1, 'rgba(255,209,102,0)'); c.fillStyle = g; c.beginPath(); c.arc(x, y - 10, 46, 0, 7); c.fill(); }
+    /* skjold fra flyets kasse: en lysende boble, der bliver svagere, jo mindre der er tilbage */
+    if (t.skjold > 0) { const a = .25 + .5 * t.skjold / 40; c.strokeStyle = 'rgba(76,201,240,' + a + ')'; c.lineWidth = 3; c.fillStyle = 'rgba(76,201,240,' + a * .25 + ')'; c.beginPath(); c.arc(x, y - 14, 30 + Math.sin(nu / 250) * 1.5, Math.PI, 0); c.closePath(); c.fill(); c.stroke(); }
     /* løb */
     const a = vinkel * Math.PI / 180;
     c.strokeStyle = '#2d3240'; c.lineWidth = 7; c.lineCap = 'round'; c.beginPath(); c.moveTo(x, y - 16); c.lineTo(x + Math.cos(a) * 26, y - 16 - Math.sin(a) * 26); c.stroke();
@@ -365,11 +418,12 @@
     c.fillStyle = 'rgba(0,0,0,.6)'; c.fillRect(x - 22, y - 40, 44, 7); c.fillStyle = t.hp > 50 ? '#06d6a0' : t.hp > 25 ? '#ffd166' : '#ef476f'; c.fillRect(x - 21, y - 39, 42 * t.hp / 100, 5);
   }
   /* flyet: hvidt propelfly med rød stribe og en hængende kasse med jorddrop */
-  function tegnFly(c, x, y, ret, nu) {
+  function tegnFly(c, x, y, ret, nu, kasse) {
+    const K = KASSER[kasse] || KASSER.jord;
     c.save(); c.translate(x, y + Math.sin(nu / 500) * 4); c.scale(ret * 1.3, 1.3);
     c.strokeStyle = '#6b4a2a'; c.lineWidth = 1.5; c.beginPath(); c.moveTo(-4, 6); c.lineTo(-8, 26); c.moveTo(4, 6); c.lineTo(0, 26); c.stroke();     // reb
-    c.fillStyle = '#a8743d'; c.fillRect(-14, 24, 18, 14); c.strokeStyle = '#6b3f1d'; c.lineWidth = 2; c.strokeRect(-14, 24, 18, 14);
-    c.beginPath(); c.moveTo(-14, 24); c.lineTo(4, 38); c.moveTo(4, 24); c.lineTo(-14, 38); c.stroke();                                               // kasse
+    c.fillStyle = K.farve; c.fillRect(-16, 24, 22, 18); c.strokeStyle = 'rgba(0,0,0,.45)'; c.lineWidth = 2; c.strokeRect(-16, 24, 22, 18);     // kasse i kassens farve
+    c.save(); c.scale(ret, 1); c.font = '13px sans-serif'; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText(K.ikon, -5 * ret, 33.5); c.restore();
     c.fillStyle = '#ef476f'; c.beginPath(); c.moveTo(-30, -2); c.lineTo(-40, -14); c.lineTo(-33, -14); c.lineTo(-24, -3); c.closePath(); c.fill(); // hale
     const g = c.createLinearGradient(0, -9, 0, 9); g.addColorStop(0, '#ffffff'); g.addColorStop(1, '#b8c3da');
     c.fillStyle = g; c.beginPath(); c.ellipse(0, 0, 32, 8, 0, 0, 7); c.fill();                                                                       // krop

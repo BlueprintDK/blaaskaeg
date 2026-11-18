@@ -111,6 +111,16 @@
     'Skyd flyet ned, når det kommer, for at få et 🟫 jorddrop': 'Shoot down the plane when it appears to get a 🟫 dirt drop', 'jorddrop': 'dirt drop',
     'Træk til venstre / højre for at styre': 'Drag left / right to steer', 'speederen er automatisk': 'the throttle is automatic',
     'Granat': 'Grenade', 'Storbombe': 'Big bomb', 'Trippelskud': 'Triple shot', 'Jorddrop': 'Dirt drop', 'Vind': 'Wind', '(begravet)': '(buried)',
+    // 18/11-2026: nye bomber og kasser i Kanondyst + liggende layout
+    'Hoppebombe': 'Bouncer', 'Klyngebombe': 'Cluster bomb', 'Borebombe': 'Driller', 'Megabombe': 'Mega bomb',
+    'skyd flyet ned og få kassen': 'shoot down the plane and get the crate', 'Drej telefonen for en større bane': 'Turn your phone for a bigger field',
+    'Skyd flyet ned og få kassen: 🟫 jord · 🛡️ skjold · ❤️ liv · 🎇 klynge · ☢️ mega': 'Shoot down the plane and get the crate: 🟫 dirt · 🛡️ shield · ❤️ health · 🎇 cluster · ☢️ mega',
+    'skjold': 'shield', 'megabombe': 'mega bomb', 'klyngebombe': 'cluster bomb',
+    // Airhockey og Stjerneværn (18/11-2026, erstatter Bilbane og Forsvar borgen)
+    'Airhockey': 'Air Hockey', 'Skub pucken i de andres mål – 1 mod 1 eller 2 mod 2. Først til 7': 'Push the puck into the other goal – 1 vs 1 or 2 vs 2. First to 7',
+    'Træk din kølle rundt på din egen halvdel': 'Drag your mallet around your own half',
+    'Stjerneværn': 'Star Guard', 'Co-op: forsvar jorden sammen mod bølger af rumvæsner. Træk for at flytte – skuddene går af sig selv': 'Co-op: defend Earth together against waves of aliens. Drag to move – it fires by itself',
+    'Træk til siden for at flytte dit skib': 'Drag sideways to move your ship', 'skuddene går af sig selv': 'it fires by itself', 'fang': 'catch', 'Bølge klaret': 'Wave cleared',
     // feedback
     'Feedback': 'Feedback', 'Hvad kan gøres bedre? Fejl, ønsker, nye spil …': 'What could be better? Bugs, wishes, new games …',
     'Send': 'Send', 'Annullér': 'Cancel', 'Tak! Din feedback er sendt': 'Thanks! Your feedback has been sent',
@@ -244,6 +254,12 @@
     [/^Niveau: (.+)$/, (m, s) => 'Level: ' + tr(s)],
     [/^Vinkel (.*)$/, 'Angle $1'], [/^Kraft (.*)$/, 'Power $1'],
     [/^(.+) skød flyet ned og fik et jorddrop$/, '$1 shot down the plane and got a dirt drop'],
+    [/^(.+) skød flyet ned: (.+)$/, (m, n, k) => n + ' shot down the plane: ' + tr(k)],
+    [/^(\d+) liv$/, '$1 health'],
+    // Airhockey / Stjerneværn
+    [/^(.+) vandt (\d+)–(\d+)!?$/, '$1 won $2–$3!'],
+    [/^Jorden faldt efter (\d+) bølger$/, 'Earth fell after $1 waves'],
+    [/^bedste skytte: (.+)$/, 'best shot: $1'],
     // generelt: "Navn (3)" → oversæt navnet
     [/^(.+) \((\d+|∞)\)?$/, (m, s, n) => tr(s) + ' (' + n + (m.endsWith(')') ? ')' : '')],
   ];

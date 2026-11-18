@@ -14,7 +14,7 @@ Spil sammen – hver på sin telefon. 2–4 spillere, iPhone og Android blandet,
 - 🚢 **Sænk slagskibe** – 2-4 flåder, ram = skyd igen
 - 🎡 **Ordhjulet** – drej, gæt konsonanter, køb vokaler, løs gåden
 - 📍 **Sæt knappenålen** – Danmark, Europa eller Verden
-- 🐍 **Snake** – sidste slange vinder
+- 🐍 **Snake** – 2 minutter, flest æbler vinder
 - 🏍️ **Lysbaner** – lys-motorcykler, der efterlader mure
 - 🥏 **Diskos-arena** – kast diske, der preller af væggene
 - 🎨 **Tegn og gæt** – én tegner live, resten gætter
@@ -22,9 +22,11 @@ Spil sammen – hver på sin telefon. 2–4 spillere, iPhone og Android blandet,
 - 🎯 **Ludo** – 2-4 spillere, slå hinanden hjem
 - 🔴 **4 på stribe** og ❌ **Kryds og bolle** – vinderen bliver ved bordet
 - 🃏 **Snyd** og ⚔️ **Krig** – kortspil, hvor ens kort kun ses på ens egen telefon
-- 🏎️ **Bilbane** – ræs 3 omgange set oppefra
-- 🏰 **Forsvar borgen** – co-op mod bølger af monstre
-- 💣 **Kanondyst** – sigt med vinkel og kraft, regn med vinden og spræng terrænet
+- 🏒 **Airhockey** – 1 mod 1 eller 2 mod 2, først til 7
+- 🛸 **Stjerneværn** – co-op mod bølger af rumvæsner
+- 💣 **Kanondyst** – slangebøsse-sigte, vind, 7 slags bomber og fly med kasser (jord, skjold, liv, mega). Bedst på liggende telefon
+
+Spil med dansk eller engelsk sprog – vælg på startskærmen.
 
 ## Teknik
 Én HTML-side med JavaScript. Telefonerne forbindes direkte med [PeerJS](https://peerjs.com) (WebRTC); værtens telefon kører spillene.
