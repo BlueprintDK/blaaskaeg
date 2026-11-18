@@ -123,6 +123,7 @@
     'Træk til siden for at flytte dit skib': 'Drag sideways to move your ship', 'skuddene går af sig selv': 'it fires by itself', 'fang': 'catch', 'Bølge klaret': 'Wave cleared',
     // spillermærker i lobbyen (18/11-2026)
     'resten i kø': 'others queue', '1 mod 1 eller 2 mod 2': '1 vs 1 or 2 vs 2', 'co-op': 'co-op',
+    'Få fire i træk – vandret, lodret eller på skrå. Er I 3–4, bliver pladen større': 'Get four in a row – across, down or diagonally. With 3–4 players the board gets bigger',
     // feedback
     'Feedback': 'Feedback', 'Hvad kan gøres bedre? Fejl, ønsker, nye spil …': 'What could be better? Bugs, wishes, new games …',
     'Send': 'Send', 'Annullér': 'Cancel', 'Tak! Din feedback er sendt': 'Thanks! Your feedback has been sent',
