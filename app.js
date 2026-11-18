@@ -244,7 +244,7 @@
       + '<p class="hint center" id="msg" style="min-height:1.4em;color:var(--gold)"></p>'
       + '<div class="card"><p class="hint" style="margin:0 0 8px">Spil i Blå skæg:</p><div class="chips">'
       + BS.rækkefølge.map(id => '<span class="chip">' + BS.spil[id].e + ' ' + esc(BS.spil[id].navn) + '</span>').join('') + '</div></div>'
-      + bundLinks();
+      + bundLinks() + '<p class="hint center" id="besog" style="margin:14px 0 0;opacity:.75">' + besøgTekst() + '</p>';
     const $ = id => document.getElementById(id);
     app().querySelectorAll('[data-sprog]').forEach(b => { b.onclick = () => { BS.sætSprog(b.dataset.sprog); tegnStart(); }; });
     bindBundLinks(app());
@@ -411,6 +411,24 @@
     document.body.appendChild(d);
     d.querySelector('#opd-knap').onclick = () => { if (R && !confirm(T('Du er vært – rummet lukkes for alle. Opdater nu?'))) return; genindlæs(); };
   }
+  /* ---------- besøgstæller (18/11-2026, Michael: «simpel uden konto») ----------
+     Gratis tæller-tjeneste Abacus (abacus.jasoncameron.dev), ingen konto og ingen cookies – den får kun et "+1".
+     Tæller én gang pr. fane/session (sessionStorage), og kun på den rigtige side (ikke ved lokal test).
+     Virker tjenesten ikke, vises der bare ingenting. Tallet vises nederst på startskærmen. */
+  const TÆLLER = 'https://abacus.jasoncameron.dev/', TÆLLER_NØGLE = 'blaaskaeg-blueprintdk/besog';
+  let besøg = null;
+  const besøgTekst = () => besøg ? '👀 ' + besøg.toLocaleString('da-DK') + ' ' + T('besøg') : '';
+  async function tælBesøg() {
+    let tæl = location.hostname === 'blueprintdk.github.io';
+    try { if (sessionStorage.getItem('bs_talt')) tæl = false; else if (tæl) sessionStorage.setItem('bs_talt', '1'); } catch (e) {}
+    try {
+      const r = await fetch(TÆLLER + (tæl ? 'hit/' : 'get/') + TÆLLER_NØGLE, { cache: 'no-store' });
+      if (!r.ok) return; const j = await r.json(); if (typeof j.value !== 'number') return;
+      besøg = j.value; const el = document.getElementById('besog'); if (el) el.textContent = besøgTekst();
+    } catch (e) {}
+  }
+  setTimeout(tælBesøg, 600);
+
   setTimeout(tjekOpdatering, 4000);
   setInterval(tjekOpdatering, 5 * 60 * 1000);
   document.addEventListener('visibilitychange', () => { if (!document.hidden) tjekOpdatering(); });

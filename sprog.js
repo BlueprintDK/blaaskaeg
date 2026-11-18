@@ -124,7 +124,7 @@
     // spillermærker i lobbyen (18/11-2026)
     'resten i kø': 'others queue', '1 mod 1 eller 2 mod 2': '1 vs 1 or 2 vs 2', 'co-op': 'co-op',
     // automatisk opdatering (18/11-2026)
-    'Ny version af Blå skæg': 'New version of Blå skæg', 'Opdater': 'Update',
+    'Ny version af Blå skæg': 'New version of Blå skæg', 'Opdater': 'Update', 'besøg': 'visits',
     'Du er vært – rummet lukkes for alle. Opdater nu': 'You are the host – the room closes for everyone. Update now',
     'Få fire i træk – vandret, lodret eller på skrå. Er I 3–4, bliver pladen større': 'Get four in a row – across, down or diagonally. With 3–4 players the board gets bigger',
     // feedback
