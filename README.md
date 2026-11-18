@@ -17,6 +17,13 @@ Spil sammen – hver på sin telefon. 2–4 spillere, iPhone og Android blandet,
 - 🐍 **Snake** – sidste slange vinder
 - 🏍️ **Lysbaner** – lys-motorcykler, der efterlader mure
 - 🥏 **Diskos-arena** – kast diske, der preller af væggene
+- 🎨 **Tegn og gæt** – én tegner live, resten gætter
+- 🎲 **Yatzy** – danske regler, fælles blok
+- 🎯 **Ludo** – 2-4 spillere, slå hinanden hjem
+- 🔴 **4 på stribe** og ❌ **Kryds og bolle** – vinderen bliver ved bordet
+- 🃏 **Snyd** og ⚔️ **Krig** – kortspil, hvor ens kort kun ses på ens egen telefon
+- 🏎️ **Bilbane** – ræs 3 omgange set oppefra
+- 🏰 **Forsvar borgen** – co-op mod bølger af monstre
 
 ## Teknik
 Én HTML-side med JavaScript. Telefonerne forbindes direkte med [PeerJS](https://peerjs.com) (WebRTC); værtens telefon kører spillene.
