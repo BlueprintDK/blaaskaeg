@@ -233,6 +233,7 @@
   }
 
   function tegnStart() {
+    if (nyUdgave && !R && !tilVaert) return genindlæs();   // tilbage på startskærmen med en ny version klar → hent den
     const navn = lsGet('navn', '');
     app().innerHTML = '<div class="sprogvalg"><button data-sprog="da" class="' + (BS.sprog === 'da' ? 'on' : '') + '">🇩🇰 Dansk</button><button data-sprog="en" class="' + (BS.sprog === 'en' ? 'on' : '') + '">🇬🇧 English</button></div>'
       + '<h1>🧔🏻 Blå skæg</h1><p class="sub">Spil sammen – hver på sin telefon. 2–4 spillere.</p>'
@@ -381,6 +382,38 @@
     + '.turur i{position:absolute;left:0;top:0;bottom:0;background:var(--blue);transition:width .25s linear}.turur.lav i{background:var(--bad)}'
     + '.turur span{position:relative;display:block;text-align:center;font-weight:800;font-size:13px;line-height:24px}';
   document.head.appendChild(urCss);
+
+  /* ---------- automatisk opdatering (18/11-2026, Michael: «så browser ikke loader den gamle») ----------
+     Appen henter den nyeste index.html uden cache og sammenligner scriptenes ?v=-numre med dem, den selv kører.
+     Er der en nyere udgave: på startskærmen genindlæses med det samme (ny adresse = frisk index.html fra GitHub Pages);
+     i et rum vises en knap, så værten ikke lukker et spil for alle. Klienter kommer selv tilbage i rummet (BS.start). */
+  /* NB: må først læses, når hele siden er indlæst – mens app.js kører, findes de senere <script>-tags ikke endnu
+     (første udgave gjorde det for tidligt og genindlæste derfor i ring) */
+  let minUdgave = null, nyUdgave = false;
+  const udgaveNu = () => [...document.scripts].map(s => s.getAttribute('src') || '').filter(s => /\?v=/.test(s)).join('|');
+  const genindlæs = () => location.replace(location.pathname + '?opdateret=' + Date.now());
+  async function tjekOpdatering() {
+    if (document.readyState !== 'complete') return;
+    if (!minUdgave) minUdgave = udgaveNu();
+    if (nyUdgave || !minUdgave || document.hidden) return;
+    try {
+      const html = await (await fetch(location.pathname + '?tjek=' + Date.now(), { cache: 'no-store' })).text();
+      const nyeste = [...html.matchAll(/<script src="([^"]+\?v=[^"]+)"/g)].map(m => m[1]).join('|');
+      if (nyeste && nyeste !== minUdgave) { nyUdgave = true; visOpdatering(); }
+    } catch (e) {}
+  }
+  function visOpdatering() {
+    if (!skærm && !R && !tilVaert) return genindlæs();
+    if (document.getElementById('opd-ban')) return;
+    const d = document.createElement('div'); d.id = 'opd-ban';
+    d.style.cssText = 'position:fixed;left:50%;bottom:calc(14px + env(safe-area-inset-bottom));transform:translateX(-50%);z-index:45;background:#14244a;border:1px solid #3a86ff;border-radius:16px;padding:8px 8px 8px 14px;display:flex;gap:10px;align-items:center;font-weight:800;box-shadow:0 8px 24px rgba(0,0,0,.45);max-width:92vw';
+    d.innerHTML = '<span>🔄 Ny version af Blå skæg</span><button class="btn ok" id="opd-knap" style="padding:8px 14px">Opdater</button>';
+    document.body.appendChild(d);
+    d.querySelector('#opd-knap').onclick = () => { if (R && !confirm(T('Du er vært – rummet lukkes for alle. Opdater nu?'))) return; genindlæs(); };
+  }
+  setTimeout(tjekOpdatering, 4000);
+  setInterval(tjekOpdatering, 5 * 60 * 1000);
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) tjekOpdatering(); });
 
   const BS = window.BS = {
     turUr,
