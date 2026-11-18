@@ -335,7 +335,7 @@
 
   /* links nederst på start- og lobbyskærmen: feedback (og senere støt) */
   /* 18/11-2026 (Michael): STØT_URL sættes til donationslinket (fx Ko-fi), når kontoen er oprettet – tom = knappen skjules */
-  const STØT_URL = '';
+  const STØT_URL = 'https://ko-fi.com/blaaskaeg';
   function bundLinks() { return '<div class="bundlinks"><button class="btn gh" id="feedbackknap">💬 Giv feedback</button>'
     + (STØT_URL ? '<a class="btn gh" href="' + esc(STØT_URL) + '" target="_blank" rel="noopener">☕ Støt Blå skæg</a>' : '') + '</div>'; }
   function bindBundLinks(root) { const f = root.querySelector('#feedbackknap'); if (f) f.onclick = () => BS.feedback && BS.feedback(); }
