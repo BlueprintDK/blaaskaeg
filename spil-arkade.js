@@ -187,6 +187,7 @@
       return true;
     },
     frakoblet(H, G, e) { const s = G.skibe.find(x => x.e === e); if (s) s.inv = 999; },
+    tilbage(H, G, e) { const s = G.skibe.find(x => x.e === e); if (s) s.inv = 2; },   // 19/11-2026: tilbage efter udfald
     skiftEnhed(H, G, gl, ny) { G.skibe.forEach(s => { if (s.e === gl) { s.e = ny; s.inv = 2; } }); G.skud.forEach(b => { if (b.e === gl) b.e = ny; }); },
     view(H, G) {
       const r = n => Math.round(n * 10) / 10;

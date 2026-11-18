@@ -71,7 +71,18 @@
     giv: (e, n) => { const p = find(e); if (p) p.point += n; },
     udsend: () => udsend(),
   };
-  function stopTicker() { if (ticker) { clearInterval(ticker); ticker = null; } }
+  /* 19/11-2026 (Michael: Tegn og gæt skiftede ikke tur, i Kanondyst kom turen aldrig til mobilen):
+     værten kører spillets tick med en timer. Chrome bremser timere i en skjult fane/et skjult vindue (helt ned til
+     én gang i minuttet), så runder og ture gik i stå, mens man kiggede på sin telefon. Nu kører uret i en lille
+     Web Worker, som ikke bremses; den sender bare et "tik" tilbage, og spillet køres som før i hovedtråden.
+     Kan workeren ikke laves, bruges den gamle setInterval. */
+  let urArbejder = null;
+  try { urArbejder = new Worker(URL.createObjectURL(new Blob(['let i=null;onmessage=e=>{clearInterval(i);i=null;if(e.data>0)i=setInterval(()=>postMessage(0),e.data)}'], { type: 'text/javascript' }))); } catch (e) { urArbejder = null; }
+  function startUr(fn, ms) {
+    if (urArbejder) { urArbejder.onmessage = fn; urArbejder.postMessage(ms); return 'worker'; }
+    return setInterval(fn, ms);
+  }
+  function stopTicker() { if (ticker) { if (ticker === 'worker') urArbejder.postMessage(0); else clearInterval(ticker); ticker = null; } }
   function startSpil(id, opt) {
     const def = BS.spil[id]; if (!def) return;
     const n = H.spillere().length;
@@ -79,7 +90,7 @@
     stopTicker();
     R.fase = 'spil'; R.nr = (R.nr || 0) + 1;
     R.spil = { id, opt: opt || {}, G: def.start(H, opt || {}) };
-    if (def.tick) ticker = setInterval(() => { try { if (R && R.spil && R.spil.id === id && def.tick(H, R.spil.G)) udsend(); } catch (e) { console.warn(e); } }, def.tickMs || 100);
+    if (def.tick) ticker = startUr(() => { try { if (R && R.spil && R.spil.id === id && def.tick(H, R.spil.G)) udsend(); } catch (e) { console.warn(e); } }, def.tickMs || 100);
   }
   function serverKald(e, c) {
     if (!R || !c) return;
@@ -87,7 +98,13 @@
     switch (c.h) {
       case 'deltag': {
         const navn = String(c.navn || '').trim().slice(0, 14) || 'Spiller';
-        if (p) { p.online = true; return; }
+        if (p) {
+          /* 19/11-2026: samme telefon kommer tilbage efter et udfald (skærmlås, app-skift) → spillet får besked,
+             så den ikke bliver ved med at være "ude" (Kanondyst sprang mobilen over resten af spillet) */
+          const varVæk = !p.online; p.online = true;
+          const def = R.spil && BS.spil[R.spil.id]; if (varVæk && def && def.tilbage) def.tilbage(H, R.spil.G, e);
+          return;
+        }
         const gammel = R.spillere.find(x => !x.online && x.navn.toLowerCase() === navn.toLowerCase());
         if (gammel) { const old = gammel.enhed; gammel.enhed = e; gammel.online = true; const def = R.spil && BS.spil[R.spil.id]; if (def && def.skiftEnhed) def.skiftEnhed(H, R.spil.G, old, e); return; }
         if (R.spillere.filter(x => x.online).length >= MAX) return 'fuld';

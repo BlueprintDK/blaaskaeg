@@ -172,6 +172,8 @@
     },
     frakoblet(H, G, e) { const t = G.tanks.find(x => x.e === e); if (t) t.ude = true; if (G.tanks[G.tur].e === e && !G.lås) { G.tur = næste(G); G.frist = Date.now() + NIV[G.niv].frist; } },
     skiftEnhed(H, G, gl, ny) { G.tanks.forEach(t => { if (t.e === gl) { t.e = ny; t.ude = false; } }); if (G.flyNed && G.flyNed.af === gl) G.flyNed.af = ny; },
+    /* 19/11-2026: samme telefon tilbage efter udfald → med igen (før blev den sprunget over resten af spillet) */
+    tilbage(H, G, e) { G.tanks.forEach(t => { if (t.e === e) t.ude = false; }); },
     felles: true,
     view(H, G) {
       const N = NIV[G.niv], nu = Date.now();
@@ -184,11 +186,26 @@
         /* 18/11-2026 (Michael: «vil passe bedre i landscape»): liggende telefon = banen fylder skærmen, styring i en kolonne til højre */
         if (!document.getElementById('kd-css')) { const s = document.createElement('style'); s.id = 'kd-css'; s.textContent = KD_CSS; document.head.appendChild(s); }
         el.innerHTML = '<div class="kd-lay"><div id="kd-ban"></div><div class="kd-bane"><canvas id="kd-cv" width="1000" height="620"></canvas></div><div id="kd-ur"></div><div id="kd-styr"></div></div>'
-          + '<p class="hint center kd-drej">📱↻ Drej telefonen for en større bane</p>';
+          + '<div class="kd-drej center" style="margin-top:10px"><button class="btn sec" id="kd-ligg">📱↻ Liggende fuld skærm</button>'
+          + '<p class="hint" style="margin:6px 0 0">eller drej telefonen (kræver automatisk rotation)</p></div>';
+        /* 19/11-2026 (Michael: «gik ikke i landscape da jeg drejede skærmen»): knap, der går i fuld skærm og låser liggende
+           (Android/Chrome). iPhone kan ikke låse retningen fra en hjemmeside – der skal man selv dreje telefonen. */
+        el.querySelector('#kd-ligg').onclick = async () => {
+          try { if (!document.fullscreenElement && document.documentElement.requestFullscreen) await document.documentElement.requestFullscreen({ navigationUI: 'hide' }); } catch (e) {}
+          try { if (screen.orientation && screen.orientation.lock) await screen.orientation.lock('landscape'); else throw 0; }
+          catch (e) { api.toast(BS.t('Drej telefonen – din telefon kan ikke dreje skærmen automatisk herfra')); }
+        };
         el._fx = { partikler: [], ryst: 0 }; el._vis = null;
         const cv = el.querySelector('#kd-cv');
         sigteStyring(el, cv, api);
-        const løkke = () => { if (!cv.isConnected) return; tegnScene(el, cv, api); requestAnimationFrame(løkke); };
+        const løkke = () => {
+          if (!cv.isConnected) {   // spillet er slut/stoppet: slip liggende lås og fuld skærm igen
+            try { if (screen.orientation && screen.orientation.unlock) screen.orientation.unlock(); } catch (e) {}
+            try { if (document.fullscreenElement) document.exitFullscreen(); } catch (e) {}
+            return;
+          }
+          tegnScene(el, cv, api); requestAnimationFrame(løkke);
+        };
         requestAnimationFrame(løkke);
       }
       /* nyt skud: animér, og vis først det nye terræn/liv, når granaten er landet */
