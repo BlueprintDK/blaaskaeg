@@ -24,7 +24,7 @@
   const holdAf = i => (i % 2 === 0 ? 'A' : 'B');
   function nyPuk(G, mod) { G.puk = { x: AW / 2, y: mod === 'A' ? AH * .62 : mod === 'B' ? AH * .38 : AH / 2, vx: 0, vy: 0 }; G.pause = 900; }
   BS.registrer({
-    id: 'airhockey', navn: 'Airhockey', e: '🏒', min: 2, max: 4, tickMs: 33, felles: true, realtid: true,
+    id: 'airhockey', navn: 'Airhockey', e: '🏒', min: 2, max: 4, spillertekst: '1 mod 1 eller 2 mod 2', tickMs: 33, felles: true, realtid: true,
     d: 'Skub pucken i de andres mål – 1 mod 1 eller 2 mod 2. Først til 7.',
     start(H) {
       const ps = H.spillere();
@@ -139,7 +139,7 @@
     G.retning = 1; G.fart = 9 + G.bølge * 2.6; G.fjSkud = []; G.pauseBølge = 0;
   }
   BS.registrer({
-    id: 'stjernevaern', navn: 'Stjerneværn', e: '🛸', min: 1, max: 4, tickMs: 33, felles: true, realtid: true,
+    id: 'stjernevaern', navn: 'Stjerneværn', e: '🛸', min: 1, max: 4, spillertekst: 'co-op', tickMs: 33, felles: true, realtid: true,
     d: 'Co-op: forsvar jorden sammen mod bølger af rumvæsner. Træk for at flytte – skuddene går af sig selv.',
     start(H) {
       const ps = H.spillere();

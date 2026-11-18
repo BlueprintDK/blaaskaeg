@@ -121,6 +121,8 @@
     'Træk din kølle rundt på din egen halvdel': 'Drag your mallet around your own half',
     'Stjerneværn': 'Star Guard', 'Co-op: forsvar jorden sammen mod bølger af rumvæsner. Træk for at flytte – skuddene går af sig selv': 'Co-op: defend Earth together against waves of aliens. Drag to move – it fires by itself',
     'Træk til siden for at flytte dit skib': 'Drag sideways to move your ship', 'skuddene går af sig selv': 'it fires by itself', 'fang': 'catch', 'Bølge klaret': 'Wave cleared',
+    // spillermærker i lobbyen (18/11-2026)
+    'resten i kø': 'others queue', '1 mod 1 eller 2 mod 2': '1 vs 1 or 2 vs 2', 'co-op': 'co-op',
     // feedback
     'Feedback': 'Feedback', 'Hvad kan gøres bedre? Fejl, ønsker, nye spil …': 'What could be better? Bugs, wishes, new games …',
     'Send': 'Send', 'Annullér': 'Cancel', 'Tak! Din feedback er sendt': 'Thanks! Your feedback has been sent',
@@ -260,6 +262,8 @@
     [/^(.+) vandt (\d+)–(\d+)!?$/, '$1 won $2–$3!'],
     [/^Jorden faldt efter (\d+) bølger$/, 'Earth fell after $1 waves'],
     [/^bedste skytte: (.+)$/, 'best shot: $1'],
+    [/^(\d+) ad gangen$/, '$1 at a time'],
+    [/^(\d+) venter i kø$/, '$1 waiting in line'],
     // generelt: "Navn (3)" → oversæt navnet
     [/^(.+) \((\d+|∞)\)?$/, (m, s, n) => tr(s) + ' (' + n + (m.endsWith(')') ? ')' : '')],
   ];

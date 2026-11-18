@@ -17,7 +17,7 @@
       return null;
     }
     BS.registrer({
-      id, navn, e, min: 2, max: 4, d,
+      id, navn, e, min: 2, max: 4, d, samtidig: 2, spillertekst: 'resten i kø',   // 18/11-2026: vises i lobbyen
       start(H2) { const G = { kø: H2.spillere().map(p => p.enhed), kampe: 0 }; nyKamp(G); return G; },
       kald(H2, G, en, dd) {
         if (dd.næste) {

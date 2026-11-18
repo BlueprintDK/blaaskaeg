@@ -285,7 +285,13 @@
     BS.rækkefølge.forEach(id => {
       const s = BS.spil[id], kan = vært && n >= (s.min || 1);
       const gemt = lsGet('valg_' + id, null);
-      h += '<div class="sk" role="button" tabindex="0" data-start="' + id + '"' + (kan ? '' : ' disabled') + '><span class="e">' + s.e + '</span><b>' + esc(s.navn) + '</b><small>' + esc(s.d)
+      /* 18/11-2026 (Michael: 3 i lobbyen, 4 på stribe kun for 2 – «det bør stå ved hvert spil»): spillermærke på hvert spil.
+         samtidig = hvor mange der spiller på én gang (fx 2 i duel-spil med kø). Mærket bliver gult, når I er flere end det. */
+      const samtidig = s.samtidig || s.max || 4, for_mange = n > samtidig;
+      const mærke = '👥 ' + (s.samtidig ? s.samtidig + ' ad gangen' : (s.min || 1) === (s.max || 4) ? (s.max || 4) : (s.min || 1) + '–' + (s.max || 4)) + (s.spillertekst ? ' · ' + s.spillertekst : '');
+      h += '<div class="sk" role="button" tabindex="0" data-start="' + id + '"' + (kan ? '' : ' disabled') + '><span class="e">' + s.e + '</span><b>' + esc(s.navn) + '</b>'
+        + '<span class="spm' + (for_mange ? ' advar' : '') + '">' + esc(mærke) + '</span>'
+        + (for_mange ? '<span class="spm advar">⚠️ ' + (n - samtidig) + ' venter i kø</span>' : '') + '<small>' + esc(s.d)
         + (n < (s.min || 1) ? ' (mindst ' + s.min + ' spillere)' : '') + '</small>'
         + (s.valg && vært ? '<select data-valg="' + id + '" style="margin-top:8px;width:100%;padding:8px;border-radius:10px;background:#0b1630;color:#fff;border:1px solid #2a4180;font:inherit">'
           + s.valg.liste.map(([k, t]) => '<option value="' + k + '"' + (gemt === k ? ' selected' : '') + '>' + esc(t) + '</option>').join('') + '</select>' : '')
